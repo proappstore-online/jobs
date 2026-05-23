@@ -1,0 +1,16 @@
+{
+  "name": "jobs",
+  "private": true,
+  "description": "Job board on ProAppStore — browse, search, and save jobs. Seek/Indeed for the Pro platform.",
+  "packageManager": "pnpm@10.30.3",
+  "engines": { "node": ">=22" },
+  "repository": { "type": "git", "url": "git+https://github.com/proappstore-online/jobs.git" },
+  "pnpm": { "onlyBuiltDependencies": ["esbuild"] },
+  "scripts": {
+    "dev": "pnpm --filter @jobs/web dev",
+    "prebuild": "npx -y @proappstore/cli@latest check",
+    "build": "pnpm --filter @jobs/web build",
+    "preview": "pnpm --filter @jobs/web preview",
+    "typecheck": "pnpm --filter @jobs/web exec tsc -b"
+  }
+}

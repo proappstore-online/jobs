@@ -1,0 +1,36 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Code health scan
+        run: npx @vibecodeqa/cli@0.31 --json --badge > /dev/null 2>&1 || true
+      - name: Include code health in deploy
+        run: |
+          mkdir -p web/dist/.vcqa
+          cp .vibe-check/report.json web/dist/.vcqa/report.json 2>/dev/null || true
+          cp .vibe-check/badge.svg web/dist/.vcqa/badge.svg 2>/dev/null || true
+
+      - run: npx wrangler pages deploy web/dist --project-name=proappstore-jobs --branch=main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: c1089bfcc43c1c6c2aa89e584e86f0bc
