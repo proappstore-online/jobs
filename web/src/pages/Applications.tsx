@@ -3,6 +3,7 @@ import { listApplications, withdrawApplication } from '../lib/db'
 import type { JobWithCompany } from '../lib/db'
 import { JobCard } from '../components/JobCard'
 import { Loading } from '../components/Loading'
+import { timeAgo } from '../lib/constants'
 
 export interface ApplicationWithJob extends JobWithCompany {
   application_status: string
@@ -14,16 +15,6 @@ interface ApplicationsProps {
   user: { id: string }
   onOpenJob: (id: string) => void
   onBack: () => void
-}
-
-function timeAgo(ts: number): string {
-  const diff = Date.now() - ts
-  const days = Math.floor(diff / 86_400_000)
-  if (days === 0) return 'today'
-  if (days === 1) return '1 day ago'
-  if (days < 30) return `${days} days ago`
-  const months = Math.floor(days / 30)
-  return months === 1 ? '1 month ago' : `${months} months ago`
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {

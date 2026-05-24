@@ -2,23 +2,11 @@ import { useEffect, useState } from 'react'
 import { listNotifications, markRead, markAllRead } from '../lib/db'
 import type { NotificationRow } from '../lib/db'
 import { Loading } from '../components/Loading'
+import { timeAgo } from '../lib/constants'
 
 interface NotificationsProps {
   user: { id: string }
   onBack: () => void
-}
-
-function timeAgo(ts: number): string {
-  const diff = Date.now() - ts
-  const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return 'Just now'
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  if (days === 1) return '1 day ago'
-  if (days < 30) return `${days} days ago`
-  return `${Math.floor(days / 30)}mo ago`
 }
 
 export function Notifications({ user, onBack }: NotificationsProps) {

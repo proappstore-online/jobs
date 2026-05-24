@@ -4,6 +4,7 @@ import type { CompanyRow } from '../lib/db'
 import { companyColor } from '../components/JobCard'
 import { Badge } from '../components/Badge'
 import { Loading } from '../components/Loading'
+import { timeAgo } from '../lib/constants'
 
 interface MyJob {
   id: string
@@ -23,16 +24,6 @@ interface EmployerDashboardProps {
   onViewApplicants: (jobId: string) => void
   onRegisterCompany: () => void
   onBack: () => void
-}
-
-function timeAgo(ts: number): string {
-  const diff = Date.now() - ts
-  const days = Math.floor(diff / 86_400_000)
-  if (days === 0) return 'Today'
-  if (days === 1) return '1 day ago'
-  if (days < 30) return `${days} days ago`
-  const months = Math.floor(days / 30)
-  return months === 1 ? '1 month ago' : `${months} months ago`
 }
 
 const statusColor: Record<string, 'mint' | 'muted' | 'accent'> = {

@@ -1,5 +1,14 @@
 import { useState } from 'react'
 import { postJob } from '../lib/db'
+import {
+  CATEGORIES,
+  EMPLOYMENT_TYPES,
+  LOCATION_TYPES,
+  EXPERIENCE_LEVELS,
+  inputClass,
+  selectClass,
+  labelClass,
+} from '../lib/constants'
 
 interface PostJobProps {
   user: { id: string }
@@ -7,47 +16,6 @@ interface PostJobProps {
   onPosted: () => void
   onBack: () => void
 }
-
-const inputClass =
-  'rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--line-strong)]'
-
-const selectClass =
-  'rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--line-strong)]'
-
-const labelClass = 'text-xs font-semibold uppercase tracking-wider text-[var(--muted)]'
-
-const CATEGORIES = [
-  'Engineering',
-  'Design',
-  'Marketing',
-  'Sales',
-  'Operations',
-  'Finance',
-  'HR',
-  'Legal',
-  'Other',
-]
-
-const EXPERIENCE_LEVELS = [
-  { value: 'entry', label: 'Entry' },
-  { value: 'mid', label: 'Mid' },
-  { value: 'senior', label: 'Senior' },
-  { value: 'lead', label: 'Lead' },
-  { value: 'staff', label: 'Staff' },
-]
-
-const EMPLOYMENT_TYPES = [
-  { value: 'full-time', label: 'Full-time' },
-  { value: 'part-time', label: 'Part-time' },
-  { value: 'contract', label: 'Contract' },
-  { value: 'casual', label: 'Casual' },
-]
-
-const LOCATION_TYPES = [
-  { value: 'remote', label: 'Remote' },
-  { value: 'hybrid', label: 'Hybrid' },
-  { value: 'onsite', label: 'Onsite' },
-]
 
 export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
   const [title, setTitle] = useState('')

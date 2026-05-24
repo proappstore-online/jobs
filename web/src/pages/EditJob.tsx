@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react'
 import { getJob, updateJob, closeJob } from '../lib/db'
+import {
+  CATEGORIES,
+  EMPLOYMENT_TYPES,
+  LOCATION_TYPES,
+  EXPERIENCE_LEVELS,
+  inputClass,
+  selectClass,
+  labelClass,
+} from '../lib/constants'
 
 interface EditJobProps {
   user: { id: string }
@@ -7,47 +16,6 @@ interface EditJobProps {
   onSaved: () => void
   onBack: () => void
 }
-
-const inputClass =
-  'rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--line-strong)]'
-
-const selectClass =
-  'rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--line-strong)]'
-
-const labelClass = 'text-xs font-semibold uppercase tracking-wider text-[var(--muted)]'
-
-const CATEGORIES = [
-  'Engineering',
-  'Design',
-  'Marketing',
-  'Sales',
-  'Operations',
-  'Finance',
-  'HR',
-  'Legal',
-  'Other',
-]
-
-const EXPERIENCE_LEVELS = [
-  { value: 'entry', label: 'Entry' },
-  { value: 'mid', label: 'Mid' },
-  { value: 'senior', label: 'Senior' },
-  { value: 'lead', label: 'Lead' },
-  { value: 'staff', label: 'Staff' },
-]
-
-const EMPLOYMENT_TYPES = [
-  { value: 'full-time', label: 'Full-time' },
-  { value: 'part-time', label: 'Part-time' },
-  { value: 'contract', label: 'Contract' },
-  { value: 'casual', label: 'Casual' },
-]
-
-const LOCATION_TYPES = [
-  { value: 'remote', label: 'Remote' },
-  { value: 'hybrid', label: 'Hybrid' },
-  { value: 'onsite', label: 'Onsite' },
-]
 
 export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
   const [loading, setLoading] = useState(true)
@@ -64,6 +32,7 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [closing, setClosing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -94,6 +63,7 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
     e.preventDefault()
     if (!title.trim() || !category || !description.trim() || submitting) return
     setSubmitting(true)
+    setError(null)
     try {
       await updateJob(user.id, jobId, {
         title: title.trim(),
@@ -108,6 +78,8 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
         description: description.trim(),
       })
       onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save changes')
     } finally {
       setSubmitting(false)
     }
@@ -304,6 +276,10 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
             />
           </div>
         </div>
+
+        {error && (
+          <p className="mt-3 text-xs font-medium text-[var(--error)]">{error}</p>
+        )}
 
         {/* Submit */}
         <button

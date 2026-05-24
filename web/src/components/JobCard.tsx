@@ -1,3 +1,4 @@
+import { formatSalary, timeAgo, typeColor, locationTypeColor } from '../lib/constants'
 import { Badge } from './Badge'
 
 export interface JobCardData {
@@ -22,40 +23,6 @@ interface JobCardProps {
   onOpen: () => void
   onToggleSave: () => void
   onOpenCompany?: () => void
-}
-
-function formatSalary(min: number | null, max: number | null, currency: string): string | null {
-  if (min == null && max == null) return null
-  const fmt = (n: number) => {
-    if (n >= 1000) return `$${Math.round(n / 1000)}k`
-    return `$${n}`
-  }
-  if (min != null && max != null) return `${fmt(min)} - ${fmt(max)} ${currency}`
-  if (min != null) return `From ${fmt(min)} ${currency}`
-  return `Up to ${fmt(max!)} ${currency}`
-}
-
-function timeAgo(ts: number): string {
-  const diff = Date.now() - ts
-  const days = Math.floor(diff / 86_400_000)
-  if (days === 0) return 'Today'
-  if (days === 1) return '1 day ago'
-  if (days < 30) return `${days} days ago`
-  const months = Math.floor(days / 30)
-  return months === 1 ? '1 month ago' : `${months} months ago`
-}
-
-const typeColor: Record<string, 'accent' | 'sky' | 'mint' | 'muted'> = {
-  'full-time': 'sky',
-  'part-time': 'mint',
-  contract: 'accent',
-  casual: 'muted',
-}
-
-const locationTypeColor: Record<string, 'accent' | 'sky' | 'mint' | 'muted'> = {
-  remote: 'mint',
-  hybrid: 'sky',
-  onsite: 'muted',
 }
 
 /** Deterministic color from company name so each company gets a unique avatar color. */

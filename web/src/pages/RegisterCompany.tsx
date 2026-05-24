@@ -1,21 +1,12 @@
 import { useState } from 'react'
 import { registerCompany } from '../lib/db'
+import { inputClass, selectClass, labelClass, COMPANY_SIZES } from '../lib/constants'
 
 interface RegisterCompanyProps {
   user: { id: string }
   onCreated: (companyId: string) => void
   onBack: () => void
 }
-
-const inputClass =
-  'rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--line-strong)]'
-
-const selectClass =
-  'rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--line-strong)]'
-
-const labelClass = 'text-xs font-semibold uppercase tracking-wider text-[var(--muted)]'
-
-const SIZES = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+']
 
 export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProps) {
   const [name, setName] = useState('')
@@ -104,7 +95,7 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
               className={`${selectClass} w-full`}
             >
               <option value="">Select size</option>
-              {SIZES.map((s) => (
+              {COMPANY_SIZES.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>

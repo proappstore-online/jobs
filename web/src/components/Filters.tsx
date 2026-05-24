@@ -1,27 +1,4 @@
-const CATEGORIES = [
-  'Engineering',
-  'Design',
-  'Marketing',
-  'Sales',
-  'Operations',
-  'Finance',
-  'HR',
-  'Legal',
-  'Other',
-]
-
-const EMPLOYMENT_TYPES = [
-  { value: 'full-time', label: 'Full-time' },
-  { value: 'part-time', label: 'Part-time' },
-  { value: 'contract', label: 'Contract' },
-  { value: 'casual', label: 'Casual' },
-]
-
-const LOCATION_TYPES = [
-  { value: 'remote', label: 'Remote' },
-  { value: 'hybrid', label: 'Hybrid' },
-  { value: 'onsite', label: 'Onsite' },
-]
+import { CATEGORIES, EMPLOYMENT_TYPES, LOCATION_TYPES, selectClass, inputClass } from '../lib/constants'
 
 interface FiltersProps {
   search: string
@@ -35,12 +12,6 @@ interface FiltersProps {
   locationType: string
   onLocationTypeChange: (v: string) => void
 }
-
-const selectClass =
-  'rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--line-strong)]'
-
-const inputClass =
-  'rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--line-strong)]'
 
 export function Filters({
   search,
