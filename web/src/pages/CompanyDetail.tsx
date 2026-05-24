@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getCompanyBySlug, getCompanyJobs, isJobSaved, saveJob, unsaveJob } from '../lib/db'
 import type { CompanyRow, JobWithCompany } from '../lib/db'
-import { JobCard } from '../components/JobCard'
+import { JobCard, companyColor } from '../components/JobCard'
 import { Loading } from '../components/Loading'
 
 interface CompanyDetailProps {
@@ -73,9 +73,10 @@ export function CompanyDetail({ companySlug, user, onBack, onOpenJob }: CompanyD
   }
 
   const initial = company.name.charAt(0).toUpperCase()
+  const avatarColor = companyColor(company.name)
 
   return (
-    <div className="mx-auto min-h-[100dvh] max-w-2xl px-4 py-6 sm:px-6">
+    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
       {/* Back */}
       <button
         onClick={onBack}
@@ -86,7 +87,10 @@ export function CompanyDetail({ companySlug, user, onBack, onOpenJob }: CompanyD
 
       {/* Company header */}
       <div className="mt-6 flex items-start gap-4">
-        <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-2xl font-bold text-[var(--accent-deep)]">
+        <div
+          className="flex size-16 shrink-0 items-center justify-center rounded-2xl text-2xl font-bold"
+          style={{ backgroundColor: avatarColor.bg, color: avatarColor.text }}
+        >
           {initial}
         </div>
         <div>

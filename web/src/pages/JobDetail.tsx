@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { getJob, isJobSaved, saveJob, unsaveJob, getCompanyJobs } from '../lib/db'
 import type { JobWithCompany } from '../lib/db'
 import { Badge } from '../components/Badge'
-import { JobCard } from '../components/JobCard'
+import { JobCard, companyColor } from '../components/JobCard'
 import { Loading } from '../components/Loading'
 
 interface JobDetailProps {
@@ -164,6 +164,7 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
 
   const salary = formatSalary(job.salary_min, job.salary_max, job.salary_currency)
   const initial = job.company_name.charAt(0).toUpperCase()
+  const avatarColor = companyColor(job.company_name)
   const locationDisplay = [job.location, job.location_type].filter(Boolean).join(' \u00b7 ')
 
   return (
@@ -192,7 +193,10 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
         onClick={() => onOpenCompany(job.company_slug)}
         className="mt-5 flex items-center gap-3 text-left hover:opacity-80"
       >
-        <div className="flex size-12 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-lg font-bold text-[var(--accent-deep)]">
+        <div
+          className="flex size-12 items-center justify-center rounded-xl text-lg font-bold"
+          style={{ backgroundColor: avatarColor.bg, color: avatarColor.text }}
+        >
           {initial}
         </div>
         <div>

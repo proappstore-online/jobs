@@ -58,9 +58,7 @@ export function SavedJobs({ user, onOpenJob, onBack }: SavedJobsProps) {
   )
 
   function handleUnsave(jobId: string) {
-    // Mark as pending removal
     setPendingRemoval((prev) => new Set(prev).add(jobId))
-    // Schedule actual removal after 3 seconds
     const timer = setTimeout(() => commitRemoval(jobId), 3000)
     undoTimers.current.set(jobId, timer)
   }
@@ -76,29 +74,12 @@ export function SavedJobs({ user, onOpenJob, onBack }: SavedJobsProps) {
     })
   }
 
-  async function handleShare(job: JobWithCompany) {
-    const url = `${window.location.origin}${window.location.pathname}#/job/${job.id}`
-    const shareData = { title: `${job.title} at ${job.company_name}`, url }
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData)
-      } catch {
-        // user cancelled — ignore
-      }
-    } else {
-      await navigator.clipboard.writeText(url)
-      // Brief visual feedback handled by the share button itself
-    }
-  }
-
   // Sort jobs client-side
   const sortedJobs =
     jobs && sort === 'posted'
       ? [...jobs].sort((a, b) => b.posted_at - a.posted_at)
       : jobs
 
-  // Count only non-pending jobs for the header
   const visibleCount = sortedJobs
     ? sortedJobs.filter((j) => !pendingRemoval.has(j.id)).length
     : 0
@@ -106,7 +87,7 @@ export function SavedJobs({ user, onOpenJob, onBack }: SavedJobsProps) {
   if (loading) return <Loading />
 
   return (
-    <div className="mx-auto min-h-[100dvh] max-w-2xl px-4 py-6 sm:px-6">
+    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
       {/* Back */}
       <button
         onClick={onBack}
@@ -151,37 +132,27 @@ export function SavedJobs({ user, onOpenJob, onBack }: SavedJobsProps) {
         <div className="mt-4 space-y-3">
           {sortedJobs.map((job) => {
             const isPending = pendingRemoval.has(job.id)
-            return (
-              <div key={job.id} className="relative">
-                {isPending ? (
-                  /* Removed state with undo */
-                  <div className="flex items-center justify-between rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-5">
-                    <span className="text-sm text-[var(--muted)]">Removed</span>
-                    <button
-                      onClick={() => handleUndo(job.id)}
-                      className="rounded-full border border-[var(--line-strong)] px-3 py-1 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-soft)]"
-                    >
-                      Undo
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <JobCard
-                        job={job}
-                        saved={true}
-                        onOpen={() => onOpenJob(job.id)}
-                        onToggleSave={() => handleUnsave(job.id)}
-                        onOpenCompany={() => {
-                          location.hash = `#/company/${job.company_slug}`
-                        }}
-                      />
-                    </div>
-                    {/* Share button */}
-                    <ShareButton onClick={() => handleShare(job)} />
-                  </div>
-                )}
+            return isPending ? (
+              <div key={job.id} className="flex items-center justify-between rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-5">
+                <span className="text-sm text-[var(--muted)]">Removed</span>
+                <button
+                  onClick={() => handleUndo(job.id)}
+                  className="rounded-full border border-[var(--line-strong)] px-3 py-1 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                >
+                  Undo
+                </button>
               </div>
+            ) : (
+              <JobCard
+                key={job.id}
+                job={job}
+                saved={true}
+                onOpen={() => onOpenJob(job.id)}
+                onToggleSave={() => handleUnsave(job.id)}
+                onOpenCompany={() => {
+                  location.hash = `#/company/${job.company_slug}`
+                }}
+              />
             )
           })}
         </div>
@@ -214,42 +185,5 @@ export function SavedJobs({ user, onOpenJob, onBack }: SavedJobsProps) {
         </div>
       )}
     </div>
-  )
-}
-
-/** Small share icon button shown beside each saved job card. */
-function ShareButton({ onClick }: { onClick: () => void }) {
-  const [copied, setCopied] = useState(false)
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  function handleClick(e: React.MouseEvent) {
-    e.stopPropagation()
-    onClick()
-    // Show "Copied" feedback if no native share
-    if (!navigator.share) {
-      setCopied(true)
-      clearTimeout(timer.current)
-      timer.current = setTimeout(() => setCopied(false), 1500)
-    }
-  }
-
-  return (
-    <button
-      onClick={handleClick}
-      className="mt-4 shrink-0 rounded-lg p-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
-      title={copied ? 'Copied!' : 'Share job'}
-    >
-      {copied ? (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      ) : (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
-          <polyline points="16 6 12 2 8 6" />
-          <line x1="12" y1="2" x2="12" y2="15" />
-        </svg>
-      )}
-    </button>
   )
 }

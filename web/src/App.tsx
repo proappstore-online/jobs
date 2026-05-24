@@ -45,9 +45,12 @@ export default function App() {
       })
   }, [user])
 
-  // Listen for hash changes.
+  // Listen for hash changes + scroll to top.
   useEffect(() => {
-    const onHash = () => setRoute(parseHash())
+    const onHash = () => {
+      setRoute(parseHash())
+      window.scrollTo(0, 0)
+    }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
