@@ -61,5 +61,3 @@ export {
   type PostJobData,
   type UpdateJobData,
 } from './employer'
-
-export { seedIfEmpty } from './seed'

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useProAuth } from '@proappstore/sdk/hooks'
 import { app } from './lib/app'
-import { ensureMigrated, seedIfEmpty, listSavedJobs, listApplications, recordView } from './lib/db'
+import { ensureMigrated, listSavedJobs, listApplications, recordView } from './lib/db'
 import { SignIn } from './pages/SignIn'
 import { JobList } from './pages/JobList'
 import { JobDetail } from './pages/JobDetail'
@@ -55,13 +55,12 @@ export default function App() {
   const [savedCount, setSavedCount] = useState(0)
   const [applicationsCount, setApplicationsCount] = useState(0)
 
-  // Run migrations + seed AFTER user signs in (data worker requires auth).
+  // Run migrations AFTER user signs in (data worker requires auth).
   const initRef = useRef(false)
   useEffect(() => {
     if (!user || initRef.current) return
     initRef.current = true
     ensureMigrated()
-      .then(() => seedIfEmpty())
       .then(() => setDbReady(true))
       .catch((err) => {
         console.error('DB init failed:', err)
