@@ -59,7 +59,7 @@ export function Applicants({ user, jobId, onBack }: ApplicantsProps) {
     return () => {
       cancelled = true
     }
-  }, [jobId])
+  }, [jobId, user.id])
 
   if (loading) return <Loading />
 

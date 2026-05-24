@@ -61,11 +61,13 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
   const [salaryCurrency, setSalaryCurrency] = useState('AUD')
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!title.trim() || !category || !description.trim() || submitting) return
     setSubmitting(true)
+    setError(null)
     try {
       await postJob(user.id, companyId, {
         title: title.trim(),
@@ -80,6 +82,8 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
         description: description.trim(),
       })
       onPosted()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to post job')
     } finally {
       setSubmitting(false)
     }
@@ -243,6 +247,10 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
             />
           </div>
         </div>
+
+        {error && (
+          <p className="mt-3 text-xs font-medium text-[var(--error)]">{error}</p>
+        )}
 
         {/* Submit */}
         <button

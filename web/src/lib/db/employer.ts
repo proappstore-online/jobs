@@ -254,12 +254,15 @@ export async function getJobApplicants(
   return rows
 }
 
+const VALID_STATUSES = new Set(['applied', 'interview', 'offer', 'rejected'])
+
 export async function updateApplicantStatus(
   employerUserId: string,
   jobId: string,
   applicantUserId: string,
   status: string,
 ): Promise<void> {
+  if (!VALID_STATUSES.has(status)) return
   await ensureMigrated()
   // Verify the employer owns this job
   const { rows: check } = await app.db.query<{ cnt: number }>(

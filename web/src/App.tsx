@@ -14,6 +14,7 @@ import { RegisterCompany } from './pages/RegisterCompany'
 import { PostJob } from './pages/PostJob'
 import { EditJob } from './pages/EditJob'
 import { Applicants } from './pages/Applicants'
+import { Notifications } from './pages/Notifications'
 import { Loading } from './components/Loading'
 
 type Route =
@@ -28,6 +29,7 @@ type Route =
   | { name: 'post-job'; companyId: string }
   | { name: 'edit-job'; jobId: string }
   | { name: 'applicants'; jobId: string }
+  | { name: 'notifications' }
 
 function parseHash(): Route {
   const h = location.hash
@@ -38,6 +40,7 @@ function parseHash(): Route {
   if (h === '#/saved') return { name: 'saved' }
   if (h === '#/companies') return { name: 'companies' }
   if (h === '#/applications') return { name: 'applications' }
+  if (h === '#/notifications') return { name: 'notifications' }
   if (h === '#/employer') return { name: 'employer' }
   if (h === '#/register-company') return { name: 'register-company' }
   m = h.match(/^#\/post-job\/([\w-]+)$/)
@@ -145,6 +148,13 @@ export default function App() {
         <Applications
           user={user}
           onOpenJob={(id) => nav(`#/job/${id}`)}
+          onBack={() => nav('#/')}
+        />
+      )
+    if (route.name === 'notifications')
+      return (
+        <Notifications
+          user={user}
           onBack={() => nav('#/')}
         />
       )
@@ -295,8 +305,12 @@ function NavLinks({
   return (
     <>
       <a href="#/companies" className={linkClass} onClick={onClick}>Companies</a>
-      <a href="#/employer" className={`relative ${linkClass}`} onClick={onClick}>
-        Employers
+      <a href="#/employer" className={linkClass} onClick={onClick}>Employers</a>
+      <a href="#/notifications" className={`relative ${linkClass}`} onClick={onClick}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block">
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 01-3.46 0" />
+        </svg>
         {unreadCount > 0 && <CountBadge count={unreadCount} />}
       </a>
       <a href="#/applications" className={`relative ${linkClass}`} onClick={onClick}>

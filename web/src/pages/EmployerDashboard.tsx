@@ -53,8 +53,11 @@ export function EmployerDashboard({
   const [jobsByCompany, setJobsByCompany] = useState<Record<string, MyJob[]>>({})
   const [loading, setLoading] = useState(true)
 
+  const [refreshKey, setRefreshKey] = useState(0)
+
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
     ;(async () => {
       const rows = await getMyCompanies(user.id)
       if (cancelled) return
@@ -72,7 +75,12 @@ export function EmployerDashboard({
     return () => {
       cancelled = true
     }
-  }, [user.id])
+  }, [user.id, refreshKey])
+
+  // Refresh when this component mounts (e.g. navigating back from PostJob)
+  useEffect(() => {
+    setRefreshKey((k) => k + 1)
+  }, [])
 
   if (loading) return <Loading />
 

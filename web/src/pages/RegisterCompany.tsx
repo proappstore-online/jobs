@@ -25,11 +25,13 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
   const [website, setWebsite] = useState('')
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim() || submitting) return
     setSubmitting(true)
+    setError(null)
     try {
       const company = await registerCompany(user.id, {
         name: name.trim(),
@@ -40,6 +42,8 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
         description: description.trim() || undefined,
       })
       onCreated(company.id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create company')
     } finally {
       setSubmitting(false)
     }
@@ -144,6 +148,10 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
             />
           </div>
         </div>
+
+        {error && (
+          <p className="mt-3 text-xs font-medium text-[var(--error)]">{error}</p>
+        )}
 
         {/* Submit */}
         <button
