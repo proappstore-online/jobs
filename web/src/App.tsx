@@ -9,6 +9,10 @@ import { CompanyDetail } from './pages/CompanyDetail'
 import { SavedJobs } from './pages/SavedJobs'
 import { Companies } from './pages/Companies'
 import { Applications } from './pages/Applications'
+import { EmployerDashboard } from './pages/EmployerDashboard'
+import { RegisterCompany } from './pages/RegisterCompany'
+import { PostJob } from './pages/PostJob'
+import { Applicants } from './pages/Applicants'
 import { Loading } from './components/Loading'
 
 type Route =
@@ -18,6 +22,11 @@ type Route =
   | { name: 'saved' }
   | { name: 'companies' }
   | { name: 'applications' }
+  | { name: 'employer' }
+  | { name: 'register-company' }
+  | { name: 'post-job'; companyId: string }
+  | { name: 'edit-job'; jobId: string }
+  | { name: 'applicants'; jobId: string }
 
 function parseHash(): Route {
   const h = location.hash
@@ -28,6 +37,14 @@ function parseHash(): Route {
   if (h === '#/saved') return { name: 'saved' }
   if (h === '#/companies') return { name: 'companies' }
   if (h === '#/applications') return { name: 'applications' }
+  if (h === '#/employer') return { name: 'employer' }
+  if (h === '#/register-company') return { name: 'register-company' }
+  m = h.match(/^#\/post-job\/([\w-]+)$/)
+  if (m) return { name: 'post-job', companyId: m[1] }
+  m = h.match(/^#\/edit-job\/([\w-]+)$/)
+  if (m) return { name: 'edit-job', jobId: m[1] }
+  m = h.match(/^#\/applicants\/([\w-]+)$/)
+  if (m) return { name: 'applicants', jobId: m[1] }
   return { name: 'browse' }
 }
 
@@ -128,6 +145,42 @@ export default function App() {
           onBack={() => nav('#/')}
         />
       )
+    if (route.name === 'employer')
+      return (
+        <EmployerDashboard
+          user={user}
+          onPostJob={(companyId) => nav(`#/post-job/${companyId}`)}
+          onEditJob={(jobId) => nav(`#/edit-job/${jobId}`)}
+          onViewApplicants={(jobId) => nav(`#/applicants/${jobId}`)}
+          onRegisterCompany={() => nav('#/register-company')}
+          onBack={() => nav('#/')}
+        />
+      )
+    if (route.name === 'register-company')
+      return (
+        <RegisterCompany
+          user={user}
+          onCreated={() => nav('#/employer')}
+          onBack={() => nav('#/employer')}
+        />
+      )
+    if (route.name === 'post-job')
+      return (
+        <PostJob
+          user={user}
+          companyId={route.companyId}
+          onPosted={() => nav('#/employer')}
+          onBack={() => nav('#/employer')}
+        />
+      )
+    if (route.name === 'applicants')
+      return (
+        <Applicants
+          user={user}
+          jobId={route.jobId}
+          onBack={() => nav('#/employer')}
+        />
+      )
     return (
       <JobList
         user={user}
@@ -167,6 +220,13 @@ function Nav({
           className="text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
         >
           Companies
+        </a>
+
+        <a
+          href="#/employer"
+          className="text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
+        >
+          For Employers
         </a>
 
         <a

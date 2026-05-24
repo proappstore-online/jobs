@@ -87,6 +87,15 @@ const MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS idx_recent_views_user ON recent_views(user_id, viewed_at DESC);
     `,
   },
+  {
+    name: '0003_employer',
+    sql: `
+      ALTER TABLE companies ADD COLUMN owner_user_id TEXT;
+      CREATE INDEX IF NOT EXISTS idx_companies_owner ON companies(owner_user_id);
+
+      ALTER TABLE jobs ADD COLUMN posted_by TEXT;
+    `,
+  },
 ]
 
 let migrated = false

@@ -48,4 +48,18 @@ export {
   clearRecentViews,
 } from './views'
 
+export {
+  registerCompany,
+  updateCompany,
+  getMyCompanies,
+  isCompanyOwner,
+  postJob,
+  updateJob,
+  closeJob,
+  getMyJobs,
+  getJobApplicants,
+  type PostJobData,
+  type UpdateJobData,
+} from './employer'
+
 export { seedIfEmpty } from './seed'
