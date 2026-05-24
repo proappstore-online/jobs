@@ -63,6 +63,30 @@ const MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS idx_saved_jobs_user ON saved_jobs(user_id);
     `,
   },
+  {
+    name: '0002_applications_and_views',
+    sql: `
+      CREATE TABLE IF NOT EXISTS applications (
+        id         TEXT PRIMARY KEY,
+        user_id    TEXT NOT NULL,
+        job_id     TEXT NOT NULL,
+        status     TEXT NOT NULL DEFAULT 'applied',
+        note       TEXT,
+        applied_at INTEGER NOT NULL,
+        UNIQUE (user_id, job_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_applications_user ON applications(user_id);
+
+      CREATE TABLE IF NOT EXISTS recent_views (
+        id        TEXT PRIMARY KEY,
+        user_id   TEXT NOT NULL,
+        job_id    TEXT NOT NULL,
+        viewed_at INTEGER NOT NULL,
+        UNIQUE (user_id, job_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_recent_views_user ON recent_views(user_id, viewed_at DESC);
+    `,
+  },
 ]
 
 let migrated = false

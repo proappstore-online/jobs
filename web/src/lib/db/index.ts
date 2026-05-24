@@ -32,4 +32,20 @@ export {
   listSavedJobs,
 } from './saved'
 
+export {
+  applyToJob,
+  withdrawApplication,
+  listApplications,
+  getApplicationStatus,
+  updateApplicationNote,
+  type ApplicationRow,
+  type ApplicationWithJob,
+} from './applications'
+
+export {
+  recordView,
+  listRecentViews,
+  clearRecentViews,
+} from './views'
+
 export { seedIfEmpty } from './seed'

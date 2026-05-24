@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useProAuth } from '@proappstore/sdk/hooks'
 import { app } from './lib/app'
-import { ensureMigrated, seedIfEmpty, listSavedJobs } from './lib/db'
+import { ensureMigrated, seedIfEmpty, listSavedJobs, listApplications, recordView } from './lib/db'
 import { SignIn } from './pages/SignIn'
 import { JobList } from './pages/JobList'
 import { JobDetail } from './pages/JobDetail'
 import { CompanyDetail } from './pages/CompanyDetail'
 import { SavedJobs } from './pages/SavedJobs'
+import { Companies } from './pages/Companies'
+import { Applications } from './pages/Applications'
 import { Loading } from './components/Loading'
 
 type Route =
@@ -14,6 +16,8 @@ type Route =
   | { name: 'job'; jobId: string }
   | { name: 'company'; companySlug: string }
   | { name: 'saved' }
+  | { name: 'companies' }
+  | { name: 'applications' }
 
 function parseHash(): Route {
   const h = location.hash
@@ -22,6 +26,8 @@ function parseHash(): Route {
   m = h.match(/^#\/company\/([\w-]+)$/)
   if (m) return { name: 'company', companySlug: m[1] }
   if (h === '#/saved') return { name: 'saved' }
+  if (h === '#/companies') return { name: 'companies' }
+  if (h === '#/applications') return { name: 'applications' }
   return { name: 'browse' }
 }
 
@@ -30,6 +36,7 @@ export default function App() {
   const [route, setRoute] = useState<Route>(parseHash())
   const [dbReady, setDbReady] = useState(false)
   const [savedCount, setSavedCount] = useState(0)
+  const [applicationsCount, setApplicationsCount] = useState(0)
 
   // Run migrations + seed AFTER user signs in (data worker requires auth).
   const initRef = useRef(false)
@@ -55,14 +62,23 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  // Track saved-jobs count for the badge.
+  // Track saved-jobs count and applications count for badges.
   useEffect(() => {
     if (!user || !dbReady) {
       setSavedCount(0)
+      setApplicationsCount(0)
       return
     }
     listSavedJobs(user.id).then((jobs) => setSavedCount(jobs.length))
+    listApplications(user.id).then((apps) => setApplicationsCount(apps.length))
   }, [user, dbReady, route])
+
+  // Record recent views when navigating to a job.
+  useEffect(() => {
+    if (route.name === 'job' && user && dbReady) {
+      recordView(user.id, route.jobId)
+    }
+  }, [route, user, dbReady])
 
   if (loading) return <Loading />
   if (!user) return <SignIn />
@@ -97,6 +113,21 @@ export default function App() {
           onBack={() => nav('#/')}
         />
       )
+    if (route.name === 'companies')
+      return (
+        <Companies
+          onOpenCompany={(slug) => nav(`#/company/${slug}`)}
+          onBack={() => nav('#/')}
+        />
+      )
+    if (route.name === 'applications')
+      return (
+        <Applications
+          user={user}
+          onOpenJob={(id) => nav(`#/job/${id}`)}
+          onBack={() => nav('#/')}
+        />
+      )
     return (
       <JobList
         user={user}
@@ -109,7 +140,7 @@ export default function App() {
 
   return (
     <>
-      <Nav user={user} savedCount={savedCount} />
+      <Nav user={user} savedCount={savedCount} applicationsCount={applicationsCount} />
       {content}
     </>
   )
@@ -118,9 +149,11 @@ export default function App() {
 function Nav({
   user,
   savedCount,
+  applicationsCount,
 }: {
   user: { id: string; login: string; avatarUrl: string | null }
   savedCount: number
+  applicationsCount: number
 }) {
   return (
     <nav className="sticky top-0 z-40 flex items-center justify-between border-b border-[var(--line)] bg-[var(--panel)] px-5 py-3 backdrop-blur-xl">
@@ -129,6 +162,25 @@ function Nav({
       </a>
 
       <div className="flex items-center gap-4">
+        <a
+          href="#/companies"
+          className="text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
+        >
+          Companies
+        </a>
+
+        <a
+          href="#/applications"
+          className="relative text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
+        >
+          Applications
+          {applicationsCount > 0 && (
+            <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[0.65rem] font-semibold text-white">
+              {applicationsCount}
+            </span>
+          )}
+        </a>
+
         <a
           href="#/saved"
           className="relative text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
