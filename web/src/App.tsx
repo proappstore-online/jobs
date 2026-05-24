@@ -173,6 +173,11 @@ export default function App() {
           onBack={() => nav('#/employer')}
         />
       )
+    if (route.name === 'edit-job') {
+      // TODO: edit job form — for now redirect to employer dashboard
+      nav('#/employer')
+      return null
+    }
     if (route.name === 'applicants')
       return (
         <Applicants

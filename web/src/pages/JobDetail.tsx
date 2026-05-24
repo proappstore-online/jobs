@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getJob, isJobSaved, saveJob, unsaveJob, getCompanyJobs } from '../lib/db'
+import { getJob, isJobSaved, saveJob, unsaveJob, getCompanyJobs, applyToJob, getApplicationStatus } from '../lib/db'
 import type { JobWithCompany } from '../lib/db'
 import { Badge } from '../components/Badge'
 import { JobCard, companyColor } from '../components/JobCard'
@@ -72,6 +72,7 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
   const [relatedJobs, setRelatedJobs] = useState<JobWithCompany[]>([])
   const [savedRelated, setSavedRelated] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [applied, setApplied] = useState(false)
   const [applyMsg, setApplyMsg] = useState<string | null>(null)
   const [shareMsg, setShareMsg] = useState<string | null>(null)
 
@@ -79,10 +80,15 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
     let cancelled = false
     setLoading(true)
     ;(async () => {
-      const [j, isSaved] = await Promise.all([getJob(jobId), isJobSaved(user.id, jobId)])
+      const [j, isSaved, appStatus] = await Promise.all([
+        getJob(jobId),
+        isJobSaved(user.id, jobId),
+        getApplicationStatus(user.id, jobId),
+      ])
       if (cancelled) return
       setJob(j)
       setSaved(isSaved)
+      setApplied(appStatus !== null)
       if (j) {
         const related = await getCompanyJobs(j.company_id)
         if (cancelled) return
@@ -126,13 +132,16 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
     }
   }
 
-  function handleApply() {
+  async function handleApply() {
+    if (applied) return
     if (job?.source_url) {
       window.open(job.source_url, '_blank', 'noopener,noreferrer')
-    } else {
-      setApplyMsg('Applications coming soon')
-      setTimeout(() => setApplyMsg(null), 3000)
+      return
     }
+    const isNew = await applyToJob(user.id, jobId)
+    setApplied(true)
+    setApplyMsg(isNew ? 'Application submitted!' : 'Already applied')
+    setTimeout(() => setApplyMsg(null), 3000)
   }
 
   async function handleShare() {
@@ -237,7 +246,7 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
           onClick={handleApply}
           className="rounded-2xl bg-[var(--ink)] px-6 py-2.5 text-sm font-semibold text-[var(--paper)] hover:opacity-90"
         >
-          Apply
+          {applied ? 'Applied' : 'Apply'}
         </button>
         <button
           onClick={handleToggleSave}
@@ -306,7 +315,7 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
           onClick={handleApply}
           className="flex-1 rounded-2xl bg-[var(--ink)] py-2.5 text-center text-sm font-semibold text-[var(--paper)] hover:opacity-90"
         >
-          Apply
+          {applied ? 'Applied' : 'Apply'}
         </button>
         <button
           onClick={handleToggleSave}

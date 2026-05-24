@@ -60,11 +60,11 @@ export function EmployerDashboard({
       if (cancelled) return
       setCompanies(rows)
 
+      const allJobs = await getMyJobs(user.id)
+      if (cancelled) return
       const jobMap: Record<string, MyJob[]> = {}
       for (const c of rows) {
-        const jobs = await getMyJobs(user.id)
-        if (cancelled) return
-        jobMap[c.id] = jobs
+        jobMap[c.id] = allJobs.filter((j) => j.company_id === c.id)
       }
       setJobsByCompany(jobMap)
       setLoading(false)
