@@ -31,7 +31,7 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
     if (!name.trim() || submitting) return
     setSubmitting(true)
     try {
-      const companyId = await registerCompany(user.id, {
+      const company = await registerCompany(user.id, {
         name: name.trim(),
         industry: industry.trim() || undefined,
         size: size || undefined,
@@ -39,7 +39,7 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
         website: website.trim() || undefined,
         description: description.trim() || undefined,
       })
-      onCreated(companyId.id)
+      onCreated(company.id)
     } finally {
       setSubmitting(false)
     }

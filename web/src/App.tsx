@@ -174,7 +174,6 @@ export default function App() {
         />
       )
     if (route.name === 'edit-job') {
-      // TODO: edit job form — for now redirect to employer dashboard
       nav('#/employer')
       return null
     }
@@ -213,64 +212,101 @@ function Nav({
   savedCount: number
   applicationsCount: number
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
-    <nav className="sticky top-0 z-40 flex items-center justify-between border-b border-[var(--line)] bg-[var(--panel)] px-5 py-3 backdrop-blur-xl">
-      <a href="#/" className="display-font text-xl font-bold text-[var(--ink)]">
-        Jobs
-      </a>
-
-      <div className="flex items-center gap-4">
-        <a
-          href="#/companies"
-          className="text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
-        >
-          Companies
+    <nav className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--panel)] backdrop-blur-xl">
+      <div className="flex items-center justify-between px-5 py-3">
+        <a href="#/" className="display-font text-xl font-bold text-[var(--ink)]">
+          Jobs
         </a>
 
-        <a
-          href="#/employer"
-          className="text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
-        >
-          For Employers
-        </a>
+        {/* Desktop links */}
+        <div className="hidden items-center gap-4 sm:flex">
+          <NavLinks savedCount={savedCount} applicationsCount={applicationsCount} />
+          <UserButton user={user} />
+        </div>
 
-        <a
-          href="#/applications"
-          className="relative text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
-        >
-          Applications
-          {applicationsCount > 0 && (
-            <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[0.65rem] font-semibold text-white">
-              {applicationsCount}
-            </span>
-          )}
-        </a>
-
-        <a
-          href="#/saved"
-          className="relative text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
-        >
-          Saved
-          {savedCount > 0 && (
-            <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[0.65rem] font-semibold text-white">
-              {savedCount}
-            </span>
-          )}
-        </a>
-
+        {/* Mobile menu button */}
         <button
-          onClick={() => app.auth.signOut()}
-          className="flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--ink)]"
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="flex items-center gap-2 sm:hidden"
+          aria-label="Menu"
         >
-          {user.avatarUrl ? (
-            <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full" />
-          ) : (
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--line-strong)] text-xs font-semibold text-[var(--ink)]">
-              {user.login[0].toUpperCase()}
-            </span>
-          )}
+          <UserButton user={user} />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round">
+            {menuOpen ? (
+              <>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </>
+            ) : (
+              <>
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </>
+            )}
+          </svg>
         </button>
       </div>
+
+      {/* Mobile dropdown */}
+      {menuOpen && (
+        <div className="flex flex-col gap-3 border-t border-[var(--line)] px-5 py-4 sm:hidden">
+          <NavLinks savedCount={savedCount} applicationsCount={applicationsCount} onClick={() => setMenuOpen(false)} />
+          <button
+            onClick={() => app.auth.signOut()}
+            className="text-left text-sm text-[var(--muted)] hover:text-[var(--ink)]"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
     </nav>
+  )
+}
+
+function NavLinks({
+  savedCount,
+  applicationsCount,
+  onClick,
+}: {
+  savedCount: number
+  applicationsCount: number
+  onClick?: () => void
+}) {
+  const linkClass = 'text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]'
+  return (
+    <>
+      <a href="#/companies" className={linkClass} onClick={onClick}>Companies</a>
+      <a href="#/employer" className={linkClass} onClick={onClick}>For Employers</a>
+      <a href="#/applications" className={`relative ${linkClass}`} onClick={onClick}>
+        Applications
+        {applicationsCount > 0 && <CountBadge count={applicationsCount} />}
+      </a>
+      <a href="#/saved" className={`relative ${linkClass}`} onClick={onClick}>
+        Saved
+        {savedCount > 0 && <CountBadge count={savedCount} />}
+      </a>
+    </>
+  )
+}
+
+function CountBadge({ count }: { count: number }) {
+  return (
+    <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[0.65rem] font-semibold text-white">
+      {count}
+    </span>
+  )
+}
+
+function UserButton({ user }: { user: { login: string; avatarUrl: string | null } }) {
+  return user.avatarUrl ? (
+    <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full" />
+  ) : (
+    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--line-strong)] text-xs font-semibold text-[var(--ink)]">
+      {user.login[0].toUpperCase()}
+    </span>
   )
 }

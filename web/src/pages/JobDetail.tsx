@@ -4,6 +4,7 @@ import type { JobWithCompany } from '../lib/db'
 import { Badge } from '../components/Badge'
 import { JobCard, companyColor } from '../components/JobCard'
 import { Loading } from '../components/Loading'
+import { sanitizeHtml } from '../lib/sanitize'
 
 interface JobDetailProps {
   jobId: string
@@ -281,7 +282,7 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
       {/* Description */}
       <div
         className="job-description mt-8 text-sm leading-relaxed text-[var(--ink)]"
-        dangerouslySetInnerHTML={{ __html: job.description }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.description) }}
       />
 
       {/* More jobs at company */}

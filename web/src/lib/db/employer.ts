@@ -92,6 +92,8 @@ export async function registerCompany(
   }
 }
 
+const COMPANY_COLUMNS = new Set(['name', 'description', 'website', 'location', 'industry', 'size'])
+
 export async function updateCompany(
   userId: string,
   companyId: string,
@@ -103,6 +105,7 @@ export async function updateCompany(
   const params: unknown[] = []
 
   for (const [key, value] of Object.entries(data)) {
+    if (!COMPANY_COLUMNS.has(key)) continue
     sets.push(`${key} = ?`)
     params.push(value)
   }
@@ -177,6 +180,11 @@ export async function postJob(userId: string, companyId: string, data: PostJobDa
   return id
 }
 
+const JOB_COLUMNS = new Set([
+  'title', 'description', 'location', 'location_type', 'salary_min', 'salary_max',
+  'salary_currency', 'employment_type', 'category', 'experience_level', 'status',
+])
+
 export async function updateJob(userId: string, jobId: string, data: UpdateJobData): Promise<void> {
   await ensureMigrated()
 
@@ -184,6 +192,7 @@ export async function updateJob(userId: string, jobId: string, data: UpdateJobDa
   const params: unknown[] = []
 
   for (const [key, value] of Object.entries(data)) {
+    if (!JOB_COLUMNS.has(key)) continue
     sets.push(`${key} = ?`)
     params.push(value)
   }
