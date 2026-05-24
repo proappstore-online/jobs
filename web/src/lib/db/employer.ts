@@ -253,3 +253,22 @@ export async function getJobApplicants(
   )
   return rows
 }
+
+export async function updateApplicantStatus(
+  employerUserId: string,
+  jobId: string,
+  applicantUserId: string,
+  status: string,
+): Promise<void> {
+  await ensureMigrated()
+  // Verify the employer owns this job
+  const { rows: check } = await app.db.query<{ cnt: number }>(
+    `SELECT COUNT(*) AS cnt FROM jobs WHERE id = ? AND posted_by = ?`,
+    [jobId, employerUserId],
+  )
+  if ((check[0]?.cnt ?? 0) === 0) return
+  await app.db.execute(
+    `UPDATE applications SET status = ? WHERE job_id = ? AND user_id = ?`,
+    [status, jobId, applicantUserId],
+  )
+}

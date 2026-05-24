@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getJob, getJobApplicants } from '../lib/db'
+import { getJob, getJobApplicants, updateApplicantStatus } from '../lib/db'
 import type { JobWithCompany } from '../lib/db'
 import { Badge } from '../components/Badge'
 import { Loading } from '../components/Loading'
@@ -33,10 +33,19 @@ const statusColor: Record<string, 'mint' | 'sky' | 'accent'> = {
   offer: 'accent',
 }
 
+const STATUS_OPTIONS = ['applied', 'interview', 'offer', 'rejected'] as const
+
 export function Applicants({ user, jobId, onBack }: ApplicantsProps) {
   const [job, setJob] = useState<JobWithCompany | null>(null)
   const [applicants, setApplicants] = useState<ApplicantRow[]>([])
   const [loading, setLoading] = useState(true)
+
+  const handleStatusChange = async (applicantUserId: string, newStatus: string) => {
+    await updateApplicantStatus(user.id, jobId, applicantUserId, newStatus)
+    setApplicants((prev) =>
+      prev.map((a) => (a.user_id === applicantUserId ? { ...a, status: newStatus } : a)),
+    )
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -97,6 +106,15 @@ export function Applicants({ user, jobId, onBack }: ApplicantsProps) {
                     </span>
                   </div>
                 </div>
+                <select
+                  value={a.status}
+                  onChange={(e) => handleStatusChange(a.user_id, e.target.value)}
+                  className="rounded-lg border border-[var(--line)] bg-[var(--paper)] px-2 py-1 text-xs text-[var(--ink)] outline-none"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
               </div>
               {a.note && (
                 <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">

@@ -23,6 +23,19 @@ export async function applyToJob(userId: string, jobId: string, note?: string): 
     `INSERT OR IGNORE INTO applications (id, user_id, job_id, status, note, applied_at) VALUES (?,?,?,?,?,?)`,
     [rid(), userId, jobId, 'applied', note ?? null, Date.now()],
   )
+  if (meta.changes > 0) {
+    const { rows: jobRows } = await app.db.query<{ posted_by: string | null; title: string }>(
+      `SELECT posted_by, title FROM jobs WHERE id = ?`,
+      [jobId],
+    )
+    const poster = jobRows[0]
+    if (poster?.posted_by) {
+      await app.db.execute(
+        `INSERT INTO notifications (id, user_id, type, title, body, link, created_at) VALUES (?,?,?,?,?,?,?)`,
+        [rid(), poster.posted_by, 'new_application', 'New application', `Someone applied to "${poster.title}"`, `#/applicants/${jobId}`, Date.now()],
+      )
+    }
+  }
   return meta.changes > 0
 }
 

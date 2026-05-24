@@ -58,6 +58,15 @@ export {
   closeJob,
   getMyJobs,
   getJobApplicants,
+  updateApplicantStatus,
   type PostJobData,
   type UpdateJobData,
 } from './employer'
+
+export {
+  listNotifications,
+  markRead,
+  markAllRead,
+  countUnread,
+  type NotificationRow,
+} from './notifications'

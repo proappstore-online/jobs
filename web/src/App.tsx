@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useProAuth } from '@proappstore/sdk/hooks'
 import { app } from './lib/app'
-import { ensureMigrated, listSavedJobs, listApplications, recordView } from './lib/db'
+import { ensureMigrated, listSavedJobs, listApplications, recordView, countUnread } from './lib/db'
 import { SignIn } from './pages/SignIn'
 import { JobList } from './pages/JobList'
 import { JobDetail } from './pages/JobDetail'
@@ -12,6 +12,7 @@ import { Applications } from './pages/Applications'
 import { EmployerDashboard } from './pages/EmployerDashboard'
 import { RegisterCompany } from './pages/RegisterCompany'
 import { PostJob } from './pages/PostJob'
+import { EditJob } from './pages/EditJob'
 import { Applicants } from './pages/Applicants'
 import { Loading } from './components/Loading'
 
@@ -54,6 +55,7 @@ export default function App() {
   const [dbReady, setDbReady] = useState(false)
   const [savedCount, setSavedCount] = useState(0)
   const [applicationsCount, setApplicationsCount] = useState(0)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   // Run migrations AFTER user signs in (data worker requires auth).
   const initRef = useRef(false)
@@ -78,15 +80,17 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  // Track saved-jobs count and applications count for badges.
+  // Track badge counts.
   useEffect(() => {
     if (!user || !dbReady) {
       setSavedCount(0)
       setApplicationsCount(0)
+      setUnreadCount(0)
       return
     }
     listSavedJobs(user.id).then((jobs) => setSavedCount(jobs.length))
     listApplications(user.id).then((apps) => setApplicationsCount(apps.length))
+    countUnread(user.id).then(setUnreadCount)
   }, [user, dbReady, route])
 
   // Record recent views when navigating to a job.
@@ -172,10 +176,15 @@ export default function App() {
           onBack={() => nav('#/employer')}
         />
       )
-    if (route.name === 'edit-job') {
-      nav('#/employer')
-      return null
-    }
+    if (route.name === 'edit-job')
+      return (
+        <EditJob
+          user={user}
+          jobId={route.jobId}
+          onSaved={() => nav('#/employer')}
+          onBack={() => nav('#/employer')}
+        />
+      )
     if (route.name === 'applicants')
       return (
         <Applicants
@@ -196,7 +205,7 @@ export default function App() {
 
   return (
     <>
-      <Nav user={user} savedCount={savedCount} applicationsCount={applicationsCount} />
+      <Nav user={user} savedCount={savedCount} applicationsCount={applicationsCount} unreadCount={unreadCount} />
       {content}
     </>
   )
@@ -206,10 +215,12 @@ function Nav({
   user,
   savedCount,
   applicationsCount,
+  unreadCount,
 }: {
   user: { id: string; login: string; avatarUrl: string | null }
   savedCount: number
   applicationsCount: number
+  unreadCount: number
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -222,7 +233,7 @@ function Nav({
 
         {/* Desktop links */}
         <div className="hidden items-center gap-4 sm:flex">
-          <NavLinks savedCount={savedCount} applicationsCount={applicationsCount} />
+          <NavLinks savedCount={savedCount} applicationsCount={applicationsCount} unreadCount={unreadCount} />
           <UserButton user={user} />
         </div>
 
@@ -232,6 +243,9 @@ function Nav({
           className="flex items-center gap-2 sm:hidden"
           aria-label="Menu"
         >
+          {unreadCount > 0 && (
+            <span className="flex h-2 w-2 rounded-full bg-[var(--accent)]" />
+          )}
           <UserButton user={user} />
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round">
             {menuOpen ? (
@@ -253,7 +267,7 @@ function Nav({
       {/* Mobile dropdown */}
       {menuOpen && (
         <div className="flex flex-col gap-3 border-t border-[var(--line)] px-5 py-4 sm:hidden">
-          <NavLinks savedCount={savedCount} applicationsCount={applicationsCount} onClick={() => setMenuOpen(false)} />
+          <NavLinks savedCount={savedCount} applicationsCount={applicationsCount} unreadCount={unreadCount} onClick={() => setMenuOpen(false)} />
           <button
             onClick={() => app.auth.signOut()}
             className="text-left text-sm text-[var(--muted)] hover:text-[var(--ink)]"
@@ -269,17 +283,22 @@ function Nav({
 function NavLinks({
   savedCount,
   applicationsCount,
+  unreadCount,
   onClick,
 }: {
   savedCount: number
   applicationsCount: number
+  unreadCount: number
   onClick?: () => void
 }) {
   const linkClass = 'text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]'
   return (
     <>
       <a href="#/companies" className={linkClass} onClick={onClick}>Companies</a>
-      <a href="#/employer" className={linkClass} onClick={onClick}>For Employers</a>
+      <a href="#/employer" className={`relative ${linkClass}`} onClick={onClick}>
+        Employers
+        {unreadCount > 0 && <CountBadge count={unreadCount} />}
+      </a>
       <a href="#/applications" className={`relative ${linkClass}`} onClick={onClick}>
         Applications
         {applicationsCount > 0 && <CountBadge count={applicationsCount} />}
