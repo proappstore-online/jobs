@@ -146,7 +146,7 @@ body::after {
   isolation: isolate;
 }
 
-input, textarea, [contenteditable] {
+input, textarea, [contenteditable], .job-description {
   -webkit-user-select: text;
   user-select: text;
 }

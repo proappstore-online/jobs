@@ -80,13 +80,13 @@ export function Filters({
       </div>
 
       {/* Filter row */}
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         <input
           type="text"
           value={location}
           onChange={(e) => onLocationChange(e.target.value)}
           placeholder="Location"
-          className={`${inputClass} w-32`}
+          className={`${inputClass} w-full sm:w-32`}
         />
 
         <select

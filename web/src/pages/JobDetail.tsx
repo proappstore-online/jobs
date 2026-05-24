@@ -180,22 +180,23 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
   return (
     <div className="mx-auto min-h-[100dvh] max-w-2xl px-4 pb-24 pt-6 sm:px-6 sm:pb-6">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-sm">
+      <nav className="flex min-w-0 items-center gap-1.5 text-sm">
         <button
           onClick={onBack}
-          className="text-[var(--muted)] hover:text-[var(--ink)]"
+          className="shrink-0 text-[var(--muted)] hover:text-[var(--ink)]"
         >
           Jobs
         </button>
-        <span className="text-[var(--line-strong)]">/</span>
+        <span className="shrink-0 text-[var(--line-strong)]">/</span>
         <button
           onClick={() => onOpenCompany(job.company_slug)}
-          className="text-[var(--muted)] hover:text-[var(--ink)]"
+          className="shrink-0 truncate text-[var(--muted)] hover:text-[var(--ink)]"
+          style={{ maxWidth: '8rem' }}
         >
           {job.company_name}
         </button>
-        <span className="text-[var(--line-strong)]">/</span>
-        <span className="truncate text-[var(--ink)]">{job.title}</span>
+        <span className="hidden shrink-0 text-[var(--line-strong)] sm:inline">/</span>
+        <span className="hidden min-w-0 truncate text-[var(--ink)] sm:inline">{job.title}</span>
       </nav>
 
       {/* Company info bar */}

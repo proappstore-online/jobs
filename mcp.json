@@ -1,0 +1,78 @@
+{
+  "tools": [
+    {
+      "name": "list_jobs",
+      "description": "Search active job listings with optional filters",
+      "operation": "query",
+      "sql": "SELECT j.id, j.title, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.status, c.name AS company_name, c.slug AS company_slug FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.status = 'active' AND (:category IS NULL OR j.category = :category) AND (:location_type IS NULL OR j.location_type = :location_type) AND (:experience_level IS NULL OR j.experience_level = :experience_level) ORDER BY j.posted_at DESC LIMIT :limit",
+      "params": {
+        "category": { "type": "string", "optional": true, "description": "Filter by category (e.g. engineering, design, marketing)" },
+        "location_type": { "type": "string", "optional": true, "description": "Filter by location type: remote, onsite, hybrid" },
+        "experience_level": { "type": "string", "optional": true, "description": "Filter by level: junior, mid, senior, lead" },
+        "limit": { "type": "integer", "optional": true, "default": 20, "max": 100, "description": "Max results to return" }
+      }
+    },
+    {
+      "name": "get_job",
+      "description": "Get full details of a specific job listing",
+      "operation": "query",
+      "sql": "SELECT j.*, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo, c.website AS company_website, c.location AS company_location, c.industry AS company_industry FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.id = :job_id",
+      "params": {
+        "job_id": { "type": "string", "description": "Job ID" }
+      }
+    },
+    {
+      "name": "list_companies",
+      "description": "List companies that have posted jobs",
+      "operation": "query",
+      "sql": "SELECT c.*, (SELECT COUNT(*) FROM jobs j WHERE j.company_id = c.id AND j.status = 'active') AS active_jobs FROM companies c ORDER BY c.created_at DESC LIMIT :limit",
+      "params": {
+        "limit": { "type": "integer", "optional": true, "default": 20, "max": 100, "description": "Max results to return" }
+      }
+    },
+    {
+      "name": "get_company",
+      "description": "Get company profile with open positions count",
+      "operation": "query",
+      "sql": "SELECT c.*, (SELECT COUNT(*) FROM jobs j WHERE j.company_id = c.id AND j.status = 'active') AS active_jobs FROM companies c WHERE c.slug = :slug",
+      "params": {
+        "slug": { "type": "string", "description": "Company slug" }
+      }
+    },
+    {
+      "name": "company_jobs",
+      "description": "List active jobs at a specific company",
+      "operation": "query",
+      "sql": "SELECT j.id, j.title, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at FROM jobs j JOIN companies c ON c.id = j.company_id WHERE c.slug = :slug AND j.status = 'active' ORDER BY j.posted_at DESC",
+      "params": {
+        "slug": { "type": "string", "description": "Company slug" }
+      }
+    },
+    {
+      "name": "save_job",
+      "description": "Save a job to your saved list",
+      "operation": "execute",
+      "sql": "INSERT OR IGNORE INTO saved_jobs (id, user_id, job_id, saved_at) VALUES (:__uuid, :__user_id, :job_id, :__now)",
+      "params": {
+        "job_id": { "type": "string", "description": "Job ID to save" }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "my_saved_jobs",
+      "description": "List your saved jobs",
+      "operation": "query",
+      "sql": "SELECT j.id, j.title, j.location, j.location_type, j.category, j.posted_at, j.status, c.name AS company_name, s.saved_at FROM saved_jobs s JOIN jobs j ON j.id = s.job_id JOIN companies c ON c.id = j.company_id WHERE s.user_id = :__user_id ORDER BY s.saved_at DESC",
+      "params": {},
+      "requires_auth": true
+    },
+    {
+      "name": "my_applications",
+      "description": "List your job applications with status",
+      "operation": "query",
+      "sql": "SELECT a.id, a.status, a.note, a.applied_at, j.title, j.location, j.category, c.name AS company_name FROM applications a JOIN jobs j ON j.id = a.job_id JOIN companies c ON c.id = j.company_id WHERE a.user_id = :__user_id ORDER BY a.applied_at DESC",
+      "params": {},
+      "requires_auth": true
+    }
+  ]
+}
