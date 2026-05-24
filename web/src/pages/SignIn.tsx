@@ -7,8 +7,14 @@ export function SignIn() {
         <h1 className="display-font text-3xl font-bold text-[var(--ink)]">Jobs</h1>
         <p className="mt-3 text-sm text-[var(--muted)]">Find your next role</p>
         <button
-          onClick={() => app.auth.signIn()}
+          onClick={() => app.auth.signIn('google')}
           className="mt-6 w-full rounded-2xl bg-[var(--ink)] py-3 text-sm font-semibold text-[var(--paper)] hover:opacity-90"
+        >
+          Sign in with Google
+        </button>
+        <button
+          onClick={() => app.auth.signIn('github')}
+          className="mt-3 w-full rounded-2xl border border-[var(--line-strong)] py-3 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
         >
           Sign in with GitHub
         </button>
