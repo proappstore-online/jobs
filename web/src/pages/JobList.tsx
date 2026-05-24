@@ -19,6 +19,19 @@ interface JobListProps {
 
 const PAGE_SIZE = 20
 
+const EMPLOYMENT_LABELS: Record<string, string> = {
+  'full-time': 'Full-time',
+  'part-time': 'Part-time',
+  contract: 'Contract',
+  casual: 'Casual',
+}
+
+const LOCATION_TYPE_LABELS: Record<string, string> = {
+  remote: 'Remote',
+  hybrid: 'Hybrid',
+  onsite: 'Onsite',
+}
+
 export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
   const [jobs, setJobs] = useState<JobWithCompany[] | null>(null)
   const [total, setTotal] = useState(0)
@@ -111,6 +124,36 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
     }
   }
 
+  // Build active filter pills
+  const activeFilters: { key: string; label: string; clear: () => void }[] = []
+  if (category) activeFilters.push({ key: 'cat', label: category, clear: () => setCategory('') })
+  if (employmentType) activeFilters.push({ key: 'type', label: EMPLOYMENT_LABELS[employmentType] ?? employmentType, clear: () => setEmploymentType('') })
+  if (locationType) activeFilters.push({ key: 'loc-type', label: LOCATION_TYPE_LABELS[locationType] ?? locationType, clear: () => setLocationType('') })
+  if (locationFilter) activeFilters.push({ key: 'loc', label: locationFilter, clear: () => setLocationFilter('') })
+  if (search) activeFilters.push({ key: 'search', label: `"${search}"`, clear: () => setSearch('') })
+  const hasFilters = activeFilters.length > 0
+
+  function clearAllFilters() {
+    setSearch('')
+    setLocationFilter('')
+    setCategory('')
+    setEmploymentType('')
+    setLocationType('')
+  }
+
+  // Build results summary text (e.g. "16 jobs in Engineering · Remote")
+  function resultsSummary(): string {
+    const count = `${total} ${total === 1 ? 'job' : 'jobs'}`
+    const parts: string[] = []
+    if (category) parts.push(category)
+    if (locationType) parts.push(LOCATION_TYPE_LABELS[locationType] ?? locationType)
+    if (employmentType) parts.push(EMPLOYMENT_LABELS[employmentType] ?? employmentType)
+    if (locationFilter) parts.push(locationFilter)
+    if (search) parts.push(`matching "${search}"`)
+    if (parts.length === 0) return `${count} found`
+    return `${count} in ${parts.join(' \u00B7 ')}`
+  }
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
       {/* Filters */}
@@ -127,16 +170,45 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
         onLocationTypeChange={setLocationType}
       />
 
+      {/* Active filter pills */}
+      {hasFilters && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {activeFilters.map((f) => (
+            <button
+              key={f.key}
+              onClick={f.clear}
+              className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[0.7rem] font-medium text-[var(--accent-deep)] transition-colors hover:bg-[var(--accent)] hover:text-white"
+            >
+              {f.label}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          ))}
+          <button
+            onClick={clearAllFilters}
+            className="text-[0.7rem] font-medium text-[var(--muted)] hover:text-[var(--ink)]"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+
       {/* Results count */}
       {!loading && jobs && (
         <p className="mt-4 text-xs text-[var(--muted)]">
-          {total} {total === 1 ? 'job' : 'jobs'} found
+          {resultsSummary()}
         </p>
       )}
 
       {/* Job list */}
       {loading ? (
-        <div className="mt-12 text-center text-sm text-[var(--muted)]">Loading...</div>
+        <div className="mt-3 space-y-3">
+          {[0, 1, 2, 3].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       ) : jobs && jobs.length > 0 ? (
         <div className="mt-3 space-y-3">
           {jobs.map((job) => (
@@ -168,6 +240,39 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
           <p className="text-sm text-[var(--muted)]">No jobs match your search</p>
         </div>
       )}
+    </div>
+  )
+}
+
+/** Animated skeleton placeholder that mimics JobCard layout. */
+function SkeletonCard() {
+  return (
+    <div className="animate-pulse rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        {/* Avatar */}
+        <div className="size-10 shrink-0 rounded-xl bg-[var(--line)]" />
+
+        <div className="min-w-0 flex-1 space-y-2.5">
+          {/* Company name */}
+          <div className="h-3 w-24 rounded bg-[var(--line)]" />
+          {/* Job title */}
+          <div className="h-4 w-48 rounded bg-[var(--line)]" />
+          {/* Badges row */}
+          <div className="flex gap-2">
+            <div className="h-5 w-16 rounded-full bg-[var(--line)]" />
+            <div className="h-5 w-14 rounded-full bg-[var(--line)]" />
+            <div className="h-5 w-20 rounded-full bg-[var(--line)]" />
+          </div>
+          {/* Salary + time */}
+          <div className="flex gap-3">
+            <div className="h-3 w-28 rounded bg-[var(--line)]" />
+            <div className="h-3 w-16 rounded bg-[var(--line)]" />
+          </div>
+        </div>
+
+        {/* Bookmark placeholder */}
+        <div className="mt-1 size-5 shrink-0 rounded bg-[var(--line)]" />
+      </div>
     </div>
   )
 }

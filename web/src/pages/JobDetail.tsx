@@ -33,6 +33,14 @@ function timeAgo(ts: number): string {
   return months === 1 ? '1 month ago' : `${months} months ago`
 }
 
+function formatDate(ts: number): string {
+  return new Date(ts).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
 const typeColor: Record<string, 'accent' | 'sky' | 'mint' | 'muted'> = {
   'full-time': 'sky',
   'part-time': 'mint',
@@ -46,6 +54,18 @@ const locationTypeColor: Record<string, 'accent' | 'sky' | 'mint' | 'muted'> = {
   onsite: 'muted',
 }
 
+function DetailItem({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--muted)]">
+        {label}
+      </span>
+      <span className="text-sm font-medium text-[var(--ink)]">{value}</span>
+    </div>
+  )
+}
+
 export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps) {
   const [job, setJob] = useState<JobWithCompany | null>(null)
   const [saved, setSaved] = useState(false)
@@ -53,6 +73,7 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
   const [savedRelated, setSavedRelated] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [applyMsg, setApplyMsg] = useState<string | null>(null)
+  const [shareMsg, setShareMsg] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -114,6 +135,18 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
     }
   }
 
+  async function handleShare() {
+    const url = `${window.location.origin}/#/job/${jobId}`
+    const shareData = { title: job!.title + ' at ' + job!.company_name, url }
+    if (navigator.share) {
+      try { await navigator.share(shareData) } catch {}
+    } else {
+      await navigator.clipboard.writeText(url)
+      setShareMsg('Link copied!')
+      setTimeout(() => setShareMsg(null), 2000)
+    }
+  }
+
   if (loading) return <Loading />
   if (!job) {
     return (
@@ -131,16 +164,28 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
 
   const salary = formatSalary(job.salary_min, job.salary_max, job.salary_currency)
   const initial = job.company_name.charAt(0).toUpperCase()
+  const locationDisplay = [job.location, job.location_type].filter(Boolean).join(' \u00b7 ')
 
   return (
-    <div className="mx-auto min-h-[100dvh] max-w-2xl px-4 py-6 sm:px-6">
-      {/* Back button */}
-      <button
-        onClick={onBack}
-        className="text-sm text-[var(--muted)] hover:text-[var(--ink)]"
-      >
-        &larr; All jobs
-      </button>
+    <div className="mx-auto min-h-[100dvh] max-w-2xl px-4 pb-24 pt-6 sm:px-6 sm:pb-6">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1.5 text-sm">
+        <button
+          onClick={onBack}
+          className="text-[var(--muted)] hover:text-[var(--ink)]"
+        >
+          Jobs
+        </button>
+        <span className="text-[var(--line-strong)]">/</span>
+        <button
+          onClick={() => onOpenCompany(job.company_slug)}
+          className="text-[var(--muted)] hover:text-[var(--ink)]"
+        >
+          {job.company_name}
+        </button>
+        <span className="text-[var(--line-strong)]">/</span>
+        <span className="truncate text-[var(--ink)]">{job.title}</span>
+      </nav>
 
       {/* Company info bar */}
       <button
@@ -163,21 +208,27 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
         {job.title}
       </h1>
 
-      {/* Meta row */}
+      {/* Meta badges */}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Badge label={job.employment_type} color={typeColor[job.employment_type]} />
         <Badge label={job.location_type} color={locationTypeColor[job.location_type]} />
-        {job.location && (
-          <span className="text-xs text-[var(--muted)]">{job.location}</span>
-        )}
-        {salary && (
-          <span className="text-xs font-medium text-[var(--ink)]">{salary}</span>
-        )}
         <span className="text-xs text-[var(--muted)]">Posted {timeAgo(job.posted_at)}</span>
       </div>
 
-      {/* Action buttons */}
-      <div className="mt-5 flex items-center gap-3">
+      {/* Key details card */}
+      <div className="mt-5 rounded-2xl border border-[var(--line)] bg-[var(--panel-quiet)] p-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+          <DetailItem label="Employment" value={job.employment_type.replace('-', ' ')} />
+          <DetailItem label="Location" value={locationDisplay || null} />
+          <DetailItem label="Salary" value={salary} />
+          <DetailItem label="Experience" value={job.experience_level} />
+          <DetailItem label="Posted" value={formatDate(job.posted_at)} />
+          <DetailItem label="Category" value={job.category} />
+        </div>
+      </div>
+
+      {/* Desktop action buttons */}
+      <div className="mt-5 hidden items-center gap-3 sm:flex">
         <button
           onClick={handleApply}
           className="rounded-2xl bg-[var(--ink)] px-6 py-2.5 text-sm font-semibold text-[var(--paper)] hover:opacity-90"
@@ -186,10 +237,27 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
         </button>
         <button
           onClick={handleToggleSave}
-          className="rounded-2xl border border-[var(--line-strong)] px-4 py-2.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
+          className="flex items-center gap-1.5 rounded-2xl border border-[var(--line-strong)] px-4 py-2.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
         >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
           {saved ? 'Saved' : 'Save'}
         </button>
+        <button
+          onClick={handleShare}
+          className="flex items-center gap-1.5 rounded-2xl border border-[var(--line-strong)] px-4 py-2.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+          Share
+        </button>
+        {shareMsg && (
+          <span className="text-xs font-medium text-[var(--mint)]">{shareMsg}</span>
+        )}
       </div>
 
       {/* Toast */}
@@ -225,6 +293,43 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
           </div>
         </div>
       )}
+
+      {/* Mobile sticky action bar */}
+      <div className="fixed inset-x-0 bottom-0 z-50 flex items-center gap-3 border-t border-[var(--line)] bg-[var(--panel-strong)] px-4 py-3 backdrop-blur-md sm:hidden"
+        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+      >
+        <button
+          onClick={handleApply}
+          className="flex-1 rounded-2xl bg-[var(--ink)] py-2.5 text-center text-sm font-semibold text-[var(--paper)] hover:opacity-90"
+        >
+          Apply
+        </button>
+        <button
+          onClick={handleToggleSave}
+          className="flex items-center gap-1.5 rounded-2xl border border-[var(--line-strong)] px-4 py-2.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+          {saved ? 'Saved' : 'Save'}
+        </button>
+        <button
+          onClick={handleShare}
+          className="flex items-center justify-center rounded-2xl border border-[var(--line-strong)] p-2.5 text-[var(--muted)] hover:text-[var(--ink)]"
+          aria-label="Share"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+        </button>
+        {shareMsg && (
+          <span className="absolute -top-8 left-1/2 -translate-x-1/2 rounded-lg bg-[var(--ink)] px-3 py-1 text-xs font-medium text-[var(--paper)]">
+            {shareMsg}
+          </span>
+        )}
+      </div>
     </div>
   )
 }
