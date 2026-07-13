@@ -5,4 +5,3 @@ dist
 .vibe-check
 test-results
 playwright-report
-mcp.json
