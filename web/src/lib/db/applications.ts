@@ -1,4 +1,4 @@
-import { app } from '../app'
+import { b, q, x } from '../actions'
 import { ensureMigrated, rid } from './core'
 import type { JobWithCompany } from './jobs'
 
@@ -17,73 +17,47 @@ export interface ApplicationWithJob extends JobWithCompany {
   note: string | null
 }
 
-export async function applyToJob(userId: string, jobId: string, note?: string): Promise<boolean> {
+/**
+ * The `userId` argument is kept for call-site compatibility but is NOT sent to
+ * the server — the registered action scopes rows to the verified caller via
+ * `:__user_id`. `apply_to_job` inserts the application and, atomically, a
+ * notification for the job poster (only when the application is genuinely new).
+ */
+export async function applyToJob(_userId: string, jobId: string, note?: string): Promise<boolean> {
   await ensureMigrated()
-  const { meta } = await app.db.execute(
-    `INSERT OR IGNORE INTO applications (id, user_id, job_id, status, note, applied_at) VALUES (?,?,?,?,?,?)`,
-    [rid(), userId, jobId, 'applied', note ?? null, Date.now()],
-  )
-  if (meta.changes > 0) {
-    const { rows: jobRows } = await app.db.query<{ posted_by: string | null; title: string }>(
-      `SELECT posted_by, title FROM jobs WHERE id = ?`,
-      [jobId],
-    )
-    const poster = jobRows[0]
-    if (poster?.posted_by) {
-      await app.db.execute(
-        `INSERT INTO notifications (id, user_id, type, title, body, link, created_at) VALUES (?,?,?,?,?,?,?)`,
-        [rid(), poster.posted_by, 'new_application', 'New application', `Someone applied to "${poster.title}"`, `#/applicants/${jobId}`, Date.now()],
-      )
-    }
-  }
-  return meta.changes > 0
+  const results = await b('apply_to_job', {
+    job_id: jobId,
+    note: note ?? null,
+    notification_id: rid(),
+  })
+  // results[0] is the application INSERT OR IGNORE; changes > 0 means a new
+  // application (a duplicate is a no-op). results[1] is the poster notification.
+  return (results[0]?.meta.changes ?? 0) > 0
 }
 
-export async function withdrawApplication(userId: string, jobId: string): Promise<void> {
+export async function withdrawApplication(_userId: string, jobId: string): Promise<void> {
   await ensureMigrated()
-  await app.db.execute(
-    `DELETE FROM applications WHERE user_id = ? AND job_id = ?`,
-    [userId, jobId],
-  )
+  await x('withdraw_application', { job_id: jobId })
 }
 
-export async function listApplications(userId: string): Promise<ApplicationWithJob[]> {
+export async function listApplications(_userId: string): Promise<ApplicationWithJob[]> {
   await ensureMigrated()
-  const { rows } = await app.db.query<ApplicationWithJob>(
-    `SELECT j.*,
-            c.name        AS company_name,
-            c.slug        AS company_slug,
-            c.logo_url    AS company_logo_url,
-            c.location    AS company_location,
-            a.status      AS application_status,
-            a.applied_at,
-            a.note
-       FROM applications a
-       JOIN jobs j ON j.id = a.job_id
-       JOIN companies c ON c.id = j.company_id
-      WHERE a.user_id = ?
-      ORDER BY a.applied_at DESC`,
-    [userId],
-  )
-  return rows
+  return q<ApplicationWithJob>('list_applications')
 }
 
 export async function getApplicationStatus(
-  userId: string,
+  _userId: string,
   jobId: string,
 ): Promise<{ status: string; applied_at: number; note: string | null } | null> {
   await ensureMigrated()
-  const { rows } = await app.db.query<{ status: string; applied_at: number; note: string | null }>(
-    `SELECT status, applied_at, note FROM applications WHERE user_id = ? AND job_id = ?`,
-    [userId, jobId],
+  const rows = await q<{ status: string; applied_at: number; note: string | null }>(
+    'get_application_status',
+    { job_id: jobId },
   )
   return rows[0] ?? null
 }
 
-export async function updateApplicationNote(userId: string, jobId: string, note: string): Promise<void> {
+export async function updateApplicationNote(_userId: string, jobId: string, note: string): Promise<void> {
   await ensureMigrated()
-  await app.db.execute(
-    `UPDATE applications SET note = ? WHERE user_id = ? AND job_id = ?`,
-    [note, userId, jobId],
-  )
+  await x('update_application_note', { job_id: jobId, note })
 }

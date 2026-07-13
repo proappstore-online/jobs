@@ -1,38 +1,23 @@
-import { app } from '../app'
-import { ensureMigrated, rid } from './core'
+import { q, x } from '../actions'
+import { ensureMigrated } from './core'
 import type { JobWithCompany } from './jobs'
 
-export async function recordView(userId: string, jobId: string): Promise<void> {
+/**
+ * The `userId` argument is kept for call-site compatibility but is NOT sent to
+ * the server — the registered action scopes rows to the verified caller via
+ * `:__user_id`.
+ */
+export async function recordView(_userId: string, jobId: string): Promise<void> {
   await ensureMigrated()
-  await app.db.execute(
-    `INSERT OR REPLACE INTO recent_views (id, user_id, job_id, viewed_at) VALUES (?,?,?,?)`,
-    [rid(), userId, jobId, Date.now()],
-  )
+  await x('record_view', { job_id: jobId })
 }
 
-export async function listRecentViews(userId: string, limit = 10): Promise<JobWithCompany[]> {
+export async function listRecentViews(_userId: string, limit = 10): Promise<JobWithCompany[]> {
   await ensureMigrated()
-  const { rows } = await app.db.query<JobWithCompany>(
-    `SELECT j.*,
-            c.name        AS company_name,
-            c.slug        AS company_slug,
-            c.logo_url    AS company_logo_url,
-            c.location    AS company_location
-       FROM recent_views v
-       JOIN jobs j ON j.id = v.job_id
-       JOIN companies c ON c.id = j.company_id
-      WHERE v.user_id = ?
-      ORDER BY v.viewed_at DESC
-      LIMIT ?`,
-    [userId, limit],
-  )
-  return rows
+  return q<JobWithCompany>('list_recent_views', { limit })
 }
 
-export async function clearRecentViews(userId: string): Promise<void> {
+export async function clearRecentViews(_userId: string): Promise<void> {
   await ensureMigrated()
-  await app.db.execute(
-    `DELETE FROM recent_views WHERE user_id = ?`,
-    [userId],
-  )
+  await x('clear_recent_views')
 }

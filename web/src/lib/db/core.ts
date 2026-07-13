@@ -117,13 +117,22 @@ const MIGRATIONS = [
 let migrated = false
 
 /**
- * Idempotent migration runner. Each db/<module>.ts function calls this
- * before its first SQL; subsequent calls are no-ops (the `migrated` flag
- * + the data-worker's own meta table both guard against double-applies).
+ * Idempotent migration runner. Raw `db.migrate` is restricted to the app's
+ * team since the platform's cross-tenant SQL lockdown, so regular users get a
+ * 403 here — that's fine: the schema is already migrated (a team member's
+ * visit applies anything new), so swallow the 403 and continue. Every
+ * user-facing read/write goes through registered actions (see lib/actions.ts),
+ * not raw SQL. Resolves on both success and a 403 so render-gating chains
+ * always proceed.
  */
 export async function ensureMigrated(): Promise<void> {
   if (migrated) return
-  await app.db.migrate(MIGRATIONS)
+  try {
+    await app.db.migrate(MIGRATIONS)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (!message.includes('403')) throw err
+  }
   migrated = true
 }
 

@@ -1,4 +1,4 @@
-import { app } from '../app'
+import { q } from '../actions'
 import { ensureMigrated } from './core'
 
 export interface JobRow {
@@ -40,119 +40,46 @@ export interface ListJobsOpts {
   offset?: number
 }
 
-function buildWhereClause(opts: ListJobsOpts): { where: string; params: unknown[] } {
-  const clauses: string[] = [`j.status = 'active'`]
-  const params: unknown[] = []
-
-  if (opts.search) {
-    clauses.push(`(j.title LIKE ? OR j.description LIKE ? OR c.name LIKE ?)`)
-    const term = `%${opts.search}%`
-    params.push(term, term, term)
+function filterParams(opts: ListJobsOpts): Record<string, unknown> {
+  return {
+    search: opts.search ?? null,
+    search_like: opts.search ? `%${opts.search}%` : null,
+    location: opts.location ?? null,
+    location_like: opts.location ? `%${opts.location}%` : null,
+    category: opts.category ?? null,
+    employment_type: opts.type ?? null,
+    location_type: opts.locationType ?? null,
   }
-  if (opts.location) {
-    clauses.push(`j.location LIKE ?`)
-    params.push(`%${opts.location}%`)
-  }
-  if (opts.category) {
-    clauses.push(`j.category = ?`)
-    params.push(opts.category)
-  }
-  if (opts.type) {
-    clauses.push(`j.employment_type = ?`)
-    params.push(opts.type)
-  }
-  if (opts.locationType) {
-    clauses.push(`j.location_type = ?`)
-    params.push(opts.locationType)
-  }
-
-  return { where: clauses.join(' AND '), params }
 }
 
 export async function listJobs(opts: ListJobsOpts = {}): Promise<JobWithCompany[]> {
   await ensureMigrated()
-  const { where, params } = buildWhereClause(opts)
-  const limit = opts.limit ?? 20
-  const offset = opts.offset ?? 0
-
-  const { rows } = await app.db.query<JobWithCompany>(
-    `SELECT j.*,
-            c.name     AS company_name,
-            c.slug     AS company_slug,
-            c.logo_url AS company_logo_url,
-            c.location AS company_location
-       FROM jobs j
-       JOIN companies c ON c.id = j.company_id
-      WHERE ${where}
-      ORDER BY j.posted_at DESC
-      LIMIT ? OFFSET ?`,
-    [...params, limit, offset],
-  )
-  return rows
+  return q<JobWithCompany>('list_jobs', {
+    ...filterParams(opts),
+    limit: opts.limit ?? 20,
+    offset: opts.offset ?? 0,
+  })
 }
 
 export async function countJobs(opts: ListJobsOpts = {}): Promise<number> {
   await ensureMigrated()
-  const { where, params } = buildWhereClause(opts)
-
-  const { rows } = await app.db.query<{ cnt: number }>(
-    `SELECT COUNT(*) AS cnt
-       FROM jobs j
-       JOIN companies c ON c.id = j.company_id
-      WHERE ${where}`,
-    params,
-  )
+  const rows = await q<{ cnt: number }>('count_jobs', filterParams(opts))
   return rows[0]?.cnt ?? 0
 }
 
 export async function getJob(id: string): Promise<JobWithCompany | null> {
   await ensureMigrated()
-  const { rows } = await app.db.query<JobWithCompany>(
-    `SELECT j.*,
-            c.name        AS company_name,
-            c.slug        AS company_slug,
-            c.logo_url    AS company_logo_url,
-            c.location    AS company_location
-       FROM jobs j
-       JOIN companies c ON c.id = j.company_id
-      WHERE j.id = ?`,
-    [id],
-  )
+  const rows = await q<JobWithCompany>('get_job', { job_id: id })
   return rows[0] ?? null
 }
 
 export async function getJobBySlug(slug: string): Promise<JobWithCompany | null> {
   await ensureMigrated()
-  const { rows } = await app.db.query<JobWithCompany>(
-    `SELECT j.*,
-            c.name        AS company_name,
-            c.slug        AS company_slug,
-            c.logo_url    AS company_logo_url,
-            c.location    AS company_location
-       FROM jobs j
-       JOIN companies c ON c.id = j.company_id
-      WHERE j.slug = ? AND j.status = 'active'`,
-    [slug],
-  )
+  const rows = await q<JobWithCompany>('get_job_by_slug', { slug })
   return rows[0] ?? null
 }
 
 export async function searchJobs(query: string): Promise<JobWithCompany[]> {
   await ensureMigrated()
-  const term = `%${query}%`
-  const { rows } = await app.db.query<JobWithCompany>(
-    `SELECT j.*,
-            c.name        AS company_name,
-            c.slug        AS company_slug,
-            c.logo_url    AS company_logo_url,
-            c.location    AS company_location
-       FROM jobs j
-       JOIN companies c ON c.id = j.company_id
-      WHERE j.status = 'active'
-        AND (j.title LIKE ? OR j.description LIKE ? OR c.name LIKE ?)
-      ORDER BY j.posted_at DESC
-      LIMIT 50`,
-    [term, term, term],
-  )
-  return rows
+  return q<JobWithCompany>('search_jobs', { term: `%${query}%` })
 }

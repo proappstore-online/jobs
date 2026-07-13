@@ -1,4 +1,4 @@
-import { app } from '../app'
+import { q, x } from '../actions'
 import { ensureMigrated, rid } from './core'
 import type { CompanyRow } from './companies'
 
@@ -63,8 +63,13 @@ function slugify(text: string): string {
 // Company management
 // ---------------------------------------------------------------------------
 
+/**
+ * The `userId` argument is kept for call-site compatibility but is NOT sent to
+ * the server as an owner id — ownership is stamped from the verified caller via
+ * `:__user_id` inside the registered action.
+ */
 export async function registerCompany(
-  userId: string,
+  _userId: string,
   data: { name: string; description?: string; website?: string; location?: string; industry?: string; size?: string },
 ): Promise<CompanyRow> {
   await ensureMigrated()
@@ -72,11 +77,16 @@ export async function registerCompany(
   const now = Date.now()
   const slug = `${slugify(data.name)}-${rid().slice(0, 6)}`
 
-  await app.db.execute(
-    `INSERT INTO companies (id, name, slug, logo_url, description, website, location, industry, size, owner_user_id, created_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-    [id, data.name, slug, null, data.description ?? null, data.website ?? null, data.location ?? null, data.industry ?? null, data.size ?? null, userId, now],
-  )
+  await x('register_company', {
+    id,
+    name: data.name,
+    slug,
+    description: data.description ?? null,
+    website: data.website ?? null,
+    location: data.location ?? null,
+    industry: data.industry ?? null,
+    size: data.size ?? null,
+  })
 
   return {
     id,
@@ -92,48 +102,32 @@ export async function registerCompany(
   }
 }
 
-const COMPANY_COLUMNS = new Set(['name', 'description', 'website', 'location', 'industry', 'size'])
-
 export async function updateCompany(
-  userId: string,
+  _userId: string,
   companyId: string,
   data: Partial<{ name: string; description: string; website: string; location: string; industry: string; size: string }>,
 ): Promise<void> {
   await ensureMigrated()
-
-  const sets: string[] = []
-  const params: unknown[] = []
-
-  for (const [key, value] of Object.entries(data)) {
-    if (!COMPANY_COLUMNS.has(key)) continue
-    sets.push(`${key} = ?`)
-    params.push(value)
-  }
-
-  if (sets.length === 0) return
-
-  params.push(companyId, userId)
-  await app.db.execute(
-    `UPDATE companies SET ${sets.join(', ')} WHERE id = ? AND owner_user_id = ?`,
-    params,
-  )
+  if (data.name === undefined) return // name is required by the action
+  await x('update_company', {
+    company_id: companyId,
+    name: data.name,
+    description: data.description ?? null,
+    website: data.website ?? null,
+    location: data.location ?? null,
+    industry: data.industry ?? null,
+    size: data.size ?? null,
+  })
 }
 
-export async function getMyCompanies(userId: string): Promise<CompanyRow[]> {
+export async function getMyCompanies(_userId: string): Promise<CompanyRow[]> {
   await ensureMigrated()
-  const { rows } = await app.db.query<CompanyRow>(
-    `SELECT * FROM companies WHERE owner_user_id = ? ORDER BY created_at DESC`,
-    [userId],
-  )
-  return rows
+  return q<CompanyRow>('get_my_companies')
 }
 
-export async function isCompanyOwner(userId: string, companyId: string): Promise<boolean> {
+export async function isCompanyOwner(_userId: string, companyId: string): Promise<boolean> {
   await ensureMigrated()
-  const { rows } = await app.db.query<{ cnt: number }>(
-    `SELECT COUNT(*) AS cnt FROM companies WHERE id = ? AND owner_user_id = ?`,
-    [companyId, userId],
-  )
+  const rows = await q<{ cnt: number }>('is_company_owner', { company_id: companyId })
   return (rows[0]?.cnt ?? 0) > 0
 }
 
@@ -144,134 +138,87 @@ export async function isCompanyOwner(userId: string, companyId: string): Promise
 export async function postJob(userId: string, companyId: string, data: PostJobData): Promise<string> {
   await ensureMigrated()
 
+  // Friendly early error; the action SQL is the real boundary (it inserts only
+  // when the caller owns the target company via a WHERE EXISTS guard).
   if (!(await isCompanyOwner(userId, companyId))) {
     throw new Error('Not the company owner')
   }
 
   const id = rid()
-  const now = Date.now()
   const slug = `${slugify(data.title)}-${rid().slice(0, 6)}`
 
-  await app.db.execute(
-    `INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, status, posted_by, created_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [
-      id,
-      companyId,
-      data.title,
-      slug,
-      data.description,
-      data.location ?? null,
-      data.location_type ?? 'onsite',
-      data.salary_min ?? null,
-      data.salary_max ?? null,
-      data.salary_currency ?? 'AUD',
-      data.employment_type ?? 'full-time',
-      data.category,
-      data.experience_level ?? 'mid',
-      now,
-      'employer',
-      'active',
-      userId,
-      now,
-    ],
-  )
+  await x('post_job', {
+    id,
+    company_id: companyId,
+    title: data.title,
+    slug,
+    description: data.description,
+    location: data.location ?? null,
+    location_type: data.location_type ?? 'onsite',
+    salary_min: data.salary_min ?? null,
+    salary_max: data.salary_max ?? null,
+    salary_currency: data.salary_currency ?? 'AUD',
+    employment_type: data.employment_type ?? 'full-time',
+    category: data.category,
+    experience_level: data.experience_level ?? 'mid',
+  })
 
   return id
 }
 
-const JOB_COLUMNS = new Set([
-  'title', 'description', 'location', 'location_type', 'salary_min', 'salary_max',
-  'salary_currency', 'employment_type', 'category', 'experience_level', 'status',
-])
-
-export async function updateJob(userId: string, jobId: string, data: UpdateJobData): Promise<void> {
+export async function updateJob(_userId: string, jobId: string, data: UpdateJobData): Promise<void> {
   await ensureMigrated()
-
-  const sets: string[] = []
-  const params: unknown[] = []
-
-  for (const [key, value] of Object.entries(data)) {
-    if (!JOB_COLUMNS.has(key)) continue
-    sets.push(`${key} = ?`)
-    params.push(value)
-  }
-
-  if (sets.length === 0) return
-
-  params.push(jobId, userId)
-  await app.db.execute(
-    `UPDATE jobs SET ${sets.join(', ')} WHERE id = ? AND posted_by = ?`,
-    params,
-  )
+  // Unset fields stay null and are preserved by COALESCE in the action SQL.
+  await x('update_job', {
+    job_id: jobId,
+    title: data.title ?? null,
+    description: data.description ?? null,
+    location: data.location ?? null,
+    location_type: data.location_type ?? null,
+    salary_min: data.salary_min ?? null,
+    salary_max: data.salary_max ?? null,
+    salary_currency: data.salary_currency ?? null,
+    employment_type: data.employment_type ?? null,
+    category: data.category ?? null,
+    experience_level: data.experience_level ?? null,
+    status: data.status ?? null,
+  })
 }
 
-export async function closeJob(userId: string, jobId: string): Promise<void> {
+export async function closeJob(_userId: string, jobId: string): Promise<void> {
   await ensureMigrated()
-  await app.db.execute(
-    `UPDATE jobs SET status = 'closed' WHERE id = ? AND posted_by = ?`,
-    [jobId, userId],
-  )
+  await x('close_job', { job_id: jobId })
 }
 
-export async function getMyJobs(userId: string): Promise<MyJobRow[]> {
+export async function getMyJobs(_userId: string): Promise<MyJobRow[]> {
   await ensureMigrated()
-  const { rows } = await app.db.query<MyJobRow>(
-    `SELECT j.id, j.company_id, j.title, j.slug, j.status, j.posted_at,
-            c.name AS company_name,
-            COUNT(a.id) AS applicant_count
-       FROM jobs j
-       JOIN companies c ON c.id = j.company_id
-       LEFT JOIN applications a ON a.job_id = j.id
-      WHERE j.posted_by = ?
-      GROUP BY j.id
-      ORDER BY j.posted_at DESC`,
-    [userId],
-  )
-  return rows
+  return q<MyJobRow>('get_my_jobs')
 }
 
 export async function getJobApplicants(
-  userId: string,
+  _userId: string,
   jobId: string,
 ): Promise<ApplicantRow[]> {
   await ensureMigrated()
-
-  // Verify the caller owns this job
-  const { rows: check } = await app.db.query<{ cnt: number }>(
-    `SELECT COUNT(*) AS cnt FROM jobs WHERE id = ? AND posted_by = ?`,
-    [jobId, userId],
-  )
-  if ((check[0]?.cnt ?? 0) === 0) return []
-
-  const { rows } = await app.db.query<ApplicantRow>(
-    `SELECT user_id, status, note, applied_at
-       FROM applications
-      WHERE job_id = ?
-      ORDER BY applied_at DESC`,
-    [jobId],
-  )
-  return rows
+  // Ownership guard is in the action SQL: rows only return when the caller
+  // posted the job.
+  return q<ApplicantRow>('get_job_applicants', { job_id: jobId })
 }
 
 const VALID_STATUSES = new Set(['applied', 'interview', 'offer', 'rejected'])
 
 export async function updateApplicantStatus(
-  employerUserId: string,
+  _employerUserId: string,
   jobId: string,
   applicantUserId: string,
   status: string,
 ): Promise<void> {
   if (!VALID_STATUSES.has(status)) return
   await ensureMigrated()
-  // Verify the employer owns this job
-  const { rows: check } = await app.db.query<{ cnt: number }>(
-    `SELECT COUNT(*) AS cnt FROM jobs WHERE id = ? AND posted_by = ?`,
-    [jobId, employerUserId],
-  )
-  if ((check[0]?.cnt ?? 0) === 0) return
-  await app.db.execute(
-    `UPDATE applications SET status = ? WHERE job_id = ? AND user_id = ?`,
-    [status, jobId, applicantUserId],
-  )
+  // Ownership guard is in the action SQL (only the job poster can update).
+  await x('update_applicant_status', {
+    job_id: jobId,
+    applicant_user_id: applicantUserId,
+    status,
+  })
 }

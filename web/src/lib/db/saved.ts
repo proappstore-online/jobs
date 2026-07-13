@@ -1,46 +1,29 @@
-import { app } from '../app'
-import { ensureMigrated, rid } from './core'
+import { q, x } from '../actions'
+import { ensureMigrated } from './core'
 import type { JobWithCompany } from './jobs'
 
-export async function saveJob(userId: string, jobId: string): Promise<void> {
+/**
+ * The `userId` argument is kept for call-site compatibility but is NOT sent to
+ * the server — the registered action scopes every row to the verified caller
+ * via `:__user_id`. Passing a client-controlled user id would be a trust hole.
+ */
+export async function saveJob(_userId: string, jobId: string): Promise<void> {
   await ensureMigrated()
-  await app.db.execute(
-    `INSERT OR IGNORE INTO saved_jobs (id, user_id, job_id, saved_at) VALUES (?,?,?,?)`,
-    [rid(), userId, jobId, Date.now()],
-  )
+  await x('save_job', { job_id: jobId })
 }
 
-export async function unsaveJob(userId: string, jobId: string): Promise<void> {
+export async function unsaveJob(_userId: string, jobId: string): Promise<void> {
   await ensureMigrated()
-  await app.db.execute(
-    `DELETE FROM saved_jobs WHERE user_id = ? AND job_id = ?`,
-    [userId, jobId],
-  )
+  await x('unsave_job', { job_id: jobId })
 }
 
-export async function listSavedJobs(userId: string): Promise<JobWithCompany[]> {
+export async function listSavedJobs(_userId: string): Promise<JobWithCompany[]> {
   await ensureMigrated()
-  const { rows } = await app.db.query<JobWithCompany>(
-    `SELECT j.*,
-            c.name        AS company_name,
-            c.slug        AS company_slug,
-            c.logo_url    AS company_logo_url,
-            c.location    AS company_location
-       FROM saved_jobs s
-       JOIN jobs j ON j.id = s.job_id
-       JOIN companies c ON c.id = j.company_id
-      WHERE s.user_id = ?
-      ORDER BY s.saved_at DESC`,
-    [userId],
-  )
-  return rows
+  return q<JobWithCompany>('list_saved_jobs')
 }
 
-export async function isJobSaved(userId: string, jobId: string): Promise<boolean> {
+export async function isJobSaved(_userId: string, jobId: string): Promise<boolean> {
   await ensureMigrated()
-  const { rows } = await app.db.query<{ cnt: number }>(
-    `SELECT COUNT(*) AS cnt FROM saved_jobs WHERE user_id = ? AND job_id = ?`,
-    [userId, jobId],
-  )
+  const rows = await q<{ cnt: number }>('is_job_saved', { job_id: jobId })
   return (rows[0]?.cnt ?? 0) > 0
 }

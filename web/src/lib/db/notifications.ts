@@ -1,4 +1,4 @@
-import { app } from '../app'
+import { q, x } from '../actions'
 import { ensureMigrated } from './core'
 
 export interface NotificationRow {
@@ -12,36 +12,28 @@ export interface NotificationRow {
   created_at: number
 }
 
-export async function listNotifications(userId: string): Promise<NotificationRow[]> {
+/**
+ * The `userId` argument is kept for call-site compatibility but is NOT sent to
+ * the server — the registered action scopes rows to the verified caller via
+ * `:__user_id`.
+ */
+export async function listNotifications(_userId: string): Promise<NotificationRow[]> {
   await ensureMigrated()
-  const { rows } = await app.db.query<NotificationRow>(
-    `SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
-    [userId],
-  )
-  return rows
+  return q<NotificationRow>('list_notifications')
 }
 
 export async function markRead(notificationId: string): Promise<void> {
   await ensureMigrated()
-  await app.db.execute(
-    `UPDATE notifications SET read = 1 WHERE id = ?`,
-    [notificationId],
-  )
+  await x('mark_notification_read', { notification_id: notificationId })
 }
 
-export async function markAllRead(userId: string): Promise<void> {
+export async function markAllRead(_userId: string): Promise<void> {
   await ensureMigrated()
-  await app.db.execute(
-    `UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0`,
-    [userId],
-  )
+  await x('mark_all_notifications_read')
 }
 
-export async function countUnread(userId: string): Promise<number> {
+export async function countUnread(_userId: string): Promise<number> {
   await ensureMigrated()
-  const { rows } = await app.db.query<{ cnt: number }>(
-    `SELECT COUNT(*) AS cnt FROM notifications WHERE user_id = ? AND read = 0`,
-    [userId],
-  )
+  const rows = await q<{ cnt: number }>('count_unread_notifications')
   return rows[0]?.cnt ?? 0
 }

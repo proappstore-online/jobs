@@ -1,4 +1,4 @@
-import { app } from '../app'
+import { q } from '../actions'
 import { ensureMigrated } from './core'
 import type { JobWithCompany } from './jobs'
 
@@ -23,57 +23,27 @@ export interface ListCompaniesOpts {
 
 export async function listCompanies(opts: ListCompaniesOpts = {}): Promise<CompanyRow[]> {
   await ensureMigrated()
-  const clauses: string[] = []
-  const params: unknown[] = []
-  const limit = opts.limit ?? 20
-  const offset = opts.offset ?? 0
-
-  if (opts.search) {
-    clauses.push(`(name LIKE ? OR industry LIKE ?)`)
-    const term = `%${opts.search}%`
-    params.push(term, term)
-  }
-
-  const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : ''
-
-  const { rows } = await app.db.query<CompanyRow>(
-    `SELECT * FROM companies ${where} ORDER BY name ASC LIMIT ? OFFSET ?`,
-    [...params, limit, offset],
-  )
-  return rows
+  return q<CompanyRow>('list_companies', {
+    search: opts.search ?? null,
+    search_like: opts.search ? `%${opts.search}%` : null,
+    limit: opts.limit ?? 20,
+    offset: opts.offset ?? 0,
+  })
 }
 
 export async function getCompany(id: string): Promise<CompanyRow | null> {
   await ensureMigrated()
-  const { rows } = await app.db.query<CompanyRow>(
-    `SELECT * FROM companies WHERE id = ?`,
-    [id],
-  )
+  const rows = await q<CompanyRow>('get_company', { company_id: id })
   return rows[0] ?? null
 }
 
 export async function getCompanyBySlug(slug: string): Promise<CompanyRow | null> {
   await ensureMigrated()
-  const { rows } = await app.db.query<CompanyRow>(
-    `SELECT * FROM companies WHERE slug = ?`,
-    [slug],
-  )
+  const rows = await q<CompanyRow>('get_company_by_slug', { slug })
   return rows[0] ?? null
 }
 
 export async function getCompanyJobs(companyId: string): Promise<JobWithCompany[]> {
   await ensureMigrated()
-  const { rows } = await app.db.query<JobWithCompany>(
-    `SELECT j.*,
-            c.name        AS company_name,
-            c.slug        AS company_slug,
-            c.logo_url    AS company_logo_url,
-            c.location    AS company_location
-       FROM jobs j
-       JOIN companies c ON c.id = j.company_id
-      WHERE j.company_id = ? AND j.status = 'active'
-      ORDER BY j.posted_at DESC`,
-    [companyId],
-  )
-  return rows
+  return q<JobWithCompany>('company_jobs', { company_id: companyId })
 }
