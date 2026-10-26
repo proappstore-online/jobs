@@ -175,6 +175,7 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {activeFilters.map((f) => (
             <button
+              aria-label={`Clear ${f.label} filter`}
               key={f.key}
               onClick={f.clear}
               className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[0.7rem] font-medium text-[var(--accent-deep)] transition-colors hover:bg-[var(--accent)] hover:text-white"
@@ -226,6 +227,7 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
           {jobs.length < total && (
             <div className="pt-2 text-center">
               <button
+                aria-label="Load more jobs"
                 onClick={handleLoadMore}
                 disabled={loadingMore}
                 className="rounded-2xl border border-[var(--line-strong)] px-6 py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)] disabled:opacity-40"

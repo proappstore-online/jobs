@@ -63,8 +63,8 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5 space-y-4">
           {/* Company name */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Company name *</label>
-            <input
+            <label htmlFor="registercompany-1" className={labelClass}>Company name *</label>
+            <input id="registercompany-1"
               type="text"
               required
               value={name}
@@ -76,8 +76,8 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
 
           {/* Industry */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Industry</label>
-            <input
+            <label htmlFor="registercompany-2" className={labelClass}>Industry</label>
+            <input id="registercompany-2"
               type="text"
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
@@ -88,8 +88,8 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
 
           {/* Company size */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Company size</label>
-            <select
+            <label htmlFor="registercompany-3" className={labelClass}>Company size</label>
+            <select id="registercompany-3"
               value={size}
               onChange={(e) => setSize(e.target.value)}
               className={`${selectClass} w-full`}
@@ -105,8 +105,8 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
 
           {/* Location */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Location</label>
-            <input
+            <label htmlFor="registercompany-4" className={labelClass}>Location</label>
+            <input id="registercompany-4"
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -117,8 +117,8 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
 
           {/* Website */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Website</label>
-            <input
+            <label htmlFor="registercompany-5" className={labelClass}>Website</label>
+            <input id="registercompany-5"
               type="url"
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
@@ -129,8 +129,8 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
 
           {/* Description */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Description</label>
-            <textarea
+            <label htmlFor="registercompany-6" className={labelClass}>Description</label>
+            <textarea id="registercompany-6"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Tell candidates about your company..."
@@ -146,6 +146,7 @@ export function RegisterCompany({ user, onCreated, onBack }: RegisterCompanyProp
 
         {/* Submit */}
         <button
+          aria-label="Create company"
           type="submit"
           disabled={!name.trim() || submitting}
           className="mt-5 w-full rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40"

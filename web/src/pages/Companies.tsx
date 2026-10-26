@@ -57,6 +57,7 @@ export function Companies({ onOpenCompany, onBack }: CompaniesProps) {
       {/* Search */}
       <div className="mt-4">
         <input
+          aria-label="Search companies"
           type="text"
           placeholder="Search companies..."
           value={search}

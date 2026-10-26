@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.describe('Route gating (unauthenticated)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route('**/api.freeappstore.online/**', (route) =>
+    await page.route('**/.pas/**', (route) =>
       route.fulfill({ status: 401, body: '{"error":"not signed in"}' }),
     )
     await page.route('**/api.proappstore.online/**', (route) =>
@@ -14,11 +14,13 @@ test.describe('Route gating (unauthenticated)', () => {
     '#/saved',
     '#/companies',
     '#/applications',
+    '#/notifications',
     '#/employer',
     '#/register-company',
     '#/job/some-id',
     '#/company/some-slug',
     '#/post-job/some-company',
+    '#/edit-job/some-job',
     '#/applicants/some-job',
   ]
 
@@ -34,7 +36,7 @@ test.describe('Route gating (unauthenticated)', () => {
 
 test.describe('Hash routing (structure)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route('**/api.freeappstore.online/**', (route) =>
+    await page.route('**/.pas/**', (route) =>
       route.fulfill({ status: 401, body: '{"error":"not signed in"}' }),
     )
     await page.route('**/api.proappstore.online/**', (route) =>

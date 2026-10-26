@@ -5,11 +5,18 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   plugins: [
+    {
+      name: 'release-revision',
+      generateBundle() {
+        this.emitFile({ type: 'asset', fileName: 'release.json', source: JSON.stringify({ commit: process.env.VITE_COMMIT_SHA || 'local' }) })
+      },
+    },
     react(),
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
+        navigateFallbackDenylist: [/^\/\.pas\//],
         globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2,wasm,json}'],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         runtimeCaching: [
@@ -45,8 +52,10 @@ export default defineConfig({
         orientation: 'any',
         categories: ['business', 'productivity'],
         min_viewport_width: 360,
-        // No app icon asset is tracked; do not publish URLs for nonexistent images.
-        icons: [],
+        icons: [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        ],
       },
     }),
   ],

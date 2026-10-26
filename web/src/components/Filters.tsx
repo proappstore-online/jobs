@@ -42,6 +42,7 @@ export function Filters({
           <path d="M21 21l-4.35-4.35" />
         </svg>
         <input
+          aria-label="Search jobs or companies"
           type="text"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -53,6 +54,7 @@ export function Filters({
       {/* Filter row */}
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         <input
+          aria-label="Location"
           type="text"
           value={location}
           onChange={(e) => onLocationChange(e.target.value)}
@@ -61,6 +63,7 @@ export function Filters({
         />
 
         <select
+          aria-label="Category"
           value={category}
           onChange={(e) => onCategoryChange(e.target.value)}
           className={selectClass}
@@ -74,6 +77,7 @@ export function Filters({
         </select>
 
         <select
+          aria-label="Employment type"
           value={employmentType}
           onChange={(e) => onEmploymentTypeChange(e.target.value)}
           className={selectClass}
@@ -87,6 +91,7 @@ export function Filters({
         </select>
 
         <select
+          aria-label="Location type"
           value={locationType}
           onChange={(e) => onLocationTypeChange(e.target.value)}
           className={selectClass}

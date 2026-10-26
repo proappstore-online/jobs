@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.describe('Sign-in', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route('**/api.freeappstore.online/v1/auth/**', (route) =>
+    await page.route('**/.pas/auth/**', (route) =>
       route.fulfill({ status: 401, body: '{"error":"not signed in"}' }),
     )
     await page.route('**/api.proappstore.online/**', (route) =>
@@ -22,24 +22,26 @@ test.describe('Sign-in', () => {
   test('Google sign-in fires OAuth start request', async ({ page }) => {
     await page.goto('/')
     const oauthRequest = page.waitForRequest(
-      (req) => req.url().includes('api.freeappstore.online') && req.url().includes('/auth/'),
+      (req) => new URL(req.url()).pathname === '/.pas/auth/start',
       { timeout: 5_000 },
     )
     await page.getByRole('button', { name: /sign in with google/i }).click()
     const req = await oauthRequest
-    expect(req.url()).toMatch(/api\.freeappstore\.online/)
-    expect(req.url()).toMatch(/google/)
+    expect(new URL(req.url()).origin).toBe(new URL(page.url()).origin)
+    expect(new URL(req.url()).searchParams.get('provider')).toBe('google')
+    expect(new URL(req.url()).searchParams.get('return_to')).toBe('/')
   })
 
   test('GitHub sign-in fires OAuth start request', async ({ page }) => {
     await page.goto('/')
     const oauthRequest = page.waitForRequest(
-      (req) => req.url().includes('api.freeappstore.online') && req.url().includes('/auth/'),
+      (req) => new URL(req.url()).pathname === '/.pas/auth/start',
       { timeout: 5_000 },
     )
     await page.getByRole('button', { name: /sign in with github/i }).click()
     const req = await oauthRequest
-    expect(req.url()).toMatch(/api\.freeappstore\.online/)
-    expect(req.url()).toMatch(/github/)
+    expect(new URL(req.url()).origin).toBe(new URL(page.url()).origin)
+    expect(new URL(req.url()).searchParams.get('provider')).toBe('github')
+    expect(new URL(req.url()).searchParams.get('return_to')).toBe('/')
   })
 })

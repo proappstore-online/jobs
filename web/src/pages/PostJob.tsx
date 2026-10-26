@@ -77,8 +77,8 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5 space-y-4">
           {/* Job title */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Job title *</label>
-            <input
+            <label htmlFor="postjob-1" className={labelClass}>Job title *</label>
+            <input id="postjob-1"
               type="text"
               required
               value={title}
@@ -90,8 +90,8 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
 
           {/* Category */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Category *</label>
-            <select
+            <label htmlFor="postjob-2" className={labelClass}>Category *</label>
+            <select id="postjob-2"
               required
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -108,8 +108,8 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
 
           {/* Experience level */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Experience level</label>
-            <select
+            <label htmlFor="postjob-3" className={labelClass}>Experience level</label>
+            <select id="postjob-3"
               value={experienceLevel}
               onChange={(e) => setExperienceLevel(e.target.value)}
               className={`${selectClass} w-full`}
@@ -124,8 +124,8 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
 
           {/* Employment type */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Employment type</label>
-            <select
+            <label htmlFor="postjob-4" className={labelClass}>Employment type</label>
+            <select id="postjob-4"
               value={employmentType}
               onChange={(e) => setEmploymentType(e.target.value)}
               className={`${selectClass} w-full`}
@@ -140,8 +140,8 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
 
           {/* Location */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Location</label>
-            <input
+            <label htmlFor="postjob-5" className={labelClass}>Location</label>
+            <input id="postjob-5"
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -152,8 +152,8 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
 
           {/* Location type */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Location type</label>
-            <select
+            <label htmlFor="postjob-6" className={labelClass}>Location type</label>
+            <select id="postjob-6"
               value={locationType}
               onChange={(e) => setLocationType(e.target.value)}
               className={`${selectClass} w-full`}
@@ -169,8 +169,8 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
           {/* Salary row */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Salary min</label>
-              <input
+              <label htmlFor="postjob-7" className={labelClass}>Salary min</label>
+              <input id="postjob-7"
                 type="number"
                 value={salaryMin}
                 onChange={(e) => setSalaryMin(e.target.value)}
@@ -179,8 +179,8 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Salary max</label>
-              <input
+              <label htmlFor="postjob-8" className={labelClass}>Salary max</label>
+              <input id="postjob-8"
                 type="number"
                 value={salaryMax}
                 onChange={(e) => setSalaryMax(e.target.value)}
@@ -189,8 +189,8 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Currency</label>
-              <input
+              <label htmlFor="postjob-9" className={labelClass}>Currency</label>
+              <input id="postjob-9"
                 type="text"
                 value={salaryCurrency}
                 onChange={(e) => setSalaryCurrency(e.target.value)}
@@ -201,11 +201,11 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
 
           {/* Description */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Description *</label>
+            <label htmlFor="postjob-10" className={labelClass}>Description *</label>
             <p className="text-[0.65rem] text-[var(--muted)]">
               Supports HTML for formatting (paragraphs, lists, bold, etc.)
             </p>
-            <textarea
+            <textarea id="postjob-10"
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -222,6 +222,7 @@ export function PostJob({ user, companyId, onPosted, onBack }: PostJobProps) {
 
         {/* Submit */}
         <button
+          aria-label="Post job"
           type="submit"
           disabled={!title.trim() || !category || !description.trim() || submitting}
           className="mt-5 w-full rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40"

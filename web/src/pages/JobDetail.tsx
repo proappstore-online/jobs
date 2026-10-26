@@ -212,12 +212,14 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
       {/* Desktop action buttons */}
       <div className="mt-5 hidden items-center gap-3 sm:flex">
         <button
+          aria-label={applied ? "Applied" : "Apply"}
           onClick={handleApply}
           className="rounded-2xl bg-[var(--ink)] px-6 py-2.5 text-sm font-semibold text-[var(--paper)] hover:opacity-90"
         >
           {applied ? 'Applied' : 'Apply'}
         </button>
         <button
+          aria-label={saved ? "Unsave job" : "Save job"}
           onClick={handleToggleSave}
           className="flex items-center gap-1.5 rounded-2xl border border-[var(--line-strong)] px-4 py-2.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
         >
@@ -281,12 +283,14 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
         style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
       >
         <button
+          aria-label={applied ? "Applied" : "Apply"}
           onClick={handleApply}
           className="flex-1 rounded-2xl bg-[var(--ink)] py-2.5 text-center text-sm font-semibold text-[var(--paper)] hover:opacity-90"
         >
           {applied ? 'Applied' : 'Apply'}
         </button>
         <button
+          aria-label={saved ? "Unsave job" : "Save job"}
           onClick={handleToggleSave}
           className="flex items-center gap-1.5 rounded-2xl border border-[var(--line-strong)] px-4 py-2.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
         >

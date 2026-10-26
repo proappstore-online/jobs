@@ -6,10 +6,10 @@ Two-sided job marketplace on ProAppStore — job seekers browse, search, save, a
 - Pages preview: `proappstore-jobs.pages.dev`
 - Dev: `pnpm install && pnpm dev` (port 5185)
 - Build: `pnpm build` (runs platform compliance check via prebuild)
-- Deploy: `git push origin main` (auto-deploys via Cloudflare Pages)
-- Tests: `pnpm --filter @jobs/web test:e2e` (14 Playwright tests)
+- Deploy: `git push origin main` (platform reusable workflow deploys to R2 at `jobs.proappstore.online`)
+- Tests: `pnpm --filter @jobs/web test:e2e`; set `E2E_BASE_URL` to check a deployed build.
 - Asset regression: `pnpm --filter @jobs/web build` builds and checks local HTML/manifest asset references; `pnpm test` checks an existing build.
-- The PWA plugin supplies the single published manifest. No branded icon asset is tracked, so icon declarations are omitted until an approved asset is supplied; browser install/share acceptance remains a manual check.
+- The PWA plugin supplies the single published manifest. Icons and share images come from the platform template (`proappstore-online/template-app`, `web/public`). Browser install/share acceptance remains a manual check. `/release.json` identifies the deployed commit (`VITE_COMMIT_SHA` in CI).
 
 For platform conventions, read SKILLS.md:
 https://raw.githubusercontent.com/proappstore-online/proappstore/main/SKILLS.md

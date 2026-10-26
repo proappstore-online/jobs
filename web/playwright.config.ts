@@ -9,7 +9,8 @@ export default defineConfig({
   reporter: 'list',
   timeout: 30_000,
   use: {
-    baseURL: 'http://localhost:5185',
+    baseURL: process.env.E2E_BASE_URL || 'http://localhost:5185',
+    serviceWorkers: 'block',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -19,7 +20,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
+  webServer: process.env.E2E_BASE_URL ? undefined : {
     command: 'pnpm dev',
     url: 'http://localhost:5185',
     reuseExistingServer: !process.env.CI,

@@ -98,6 +98,7 @@ export function Applicants({ user, jobId, onBack }: ApplicantsProps) {
                   </div>
                 </div>
                 <select
+                  aria-label="Application status"
                   value={a.status}
                   onChange={(e) => handleStatusChange(a.user_id, e.target.value)}
                   className="rounded-lg border border-[var(--line)] bg-[var(--paper)] px-2 py-1 text-xs text-[var(--ink)] outline-none"

@@ -79,6 +79,7 @@ export function JobCard({ job, saved, onOpen, onToggleSave, onOpenCompany }: Job
 
           {/* Job title */}
           <button
+            aria-label={job.title}
             onClick={onOpen}
             className="mt-0.5 block text-left text-[0.95rem] font-semibold leading-snug text-[var(--ink)] hover:text-[var(--accent)]"
           >

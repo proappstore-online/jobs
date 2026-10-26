@@ -138,8 +138,8 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5 space-y-4">
           {/* Job title */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Job title *</label>
-            <input
+            <label htmlFor="editjob-1" className={labelClass}>Job title *</label>
+            <input id="editjob-1"
               type="text"
               required
               value={title}
@@ -151,8 +151,8 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
 
           {/* Category */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Category *</label>
-            <select
+            <label htmlFor="editjob-2" className={labelClass}>Category *</label>
+            <select id="editjob-2"
               required
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -169,8 +169,8 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
 
           {/* Experience level */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Experience level</label>
-            <select
+            <label htmlFor="editjob-3" className={labelClass}>Experience level</label>
+            <select id="editjob-3"
               value={experienceLevel}
               onChange={(e) => setExperienceLevel(e.target.value)}
               className={`${selectClass} w-full`}
@@ -185,8 +185,8 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
 
           {/* Employment type */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Employment type</label>
-            <select
+            <label htmlFor="editjob-4" className={labelClass}>Employment type</label>
+            <select id="editjob-4"
               value={employmentType}
               onChange={(e) => setEmploymentType(e.target.value)}
               className={`${selectClass} w-full`}
@@ -201,8 +201,8 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
 
           {/* Location */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Location</label>
-            <input
+            <label htmlFor="editjob-5" className={labelClass}>Location</label>
+            <input id="editjob-5"
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -213,8 +213,8 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
 
           {/* Location type */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Location type</label>
-            <select
+            <label htmlFor="editjob-6" className={labelClass}>Location type</label>
+            <select id="editjob-6"
               value={locationType}
               onChange={(e) => setLocationType(e.target.value)}
               className={`${selectClass} w-full`}
@@ -230,8 +230,8 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
           {/* Salary row */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Salary min</label>
-              <input
+              <label htmlFor="editjob-7" className={labelClass}>Salary min</label>
+              <input id="editjob-7"
                 type="number"
                 value={salaryMin}
                 onChange={(e) => setSalaryMin(e.target.value)}
@@ -240,8 +240,8 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Salary max</label>
-              <input
+              <label htmlFor="editjob-8" className={labelClass}>Salary max</label>
+              <input id="editjob-8"
                 type="number"
                 value={salaryMax}
                 onChange={(e) => setSalaryMax(e.target.value)}
@@ -250,8 +250,8 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Currency</label>
-              <input
+              <label htmlFor="editjob-9" className={labelClass}>Currency</label>
+              <input id="editjob-9"
                 type="text"
                 value={salaryCurrency}
                 onChange={(e) => setSalaryCurrency(e.target.value)}
@@ -262,11 +262,11 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
 
           {/* Description */}
           <div className="flex flex-col gap-1.5">
-            <label className={labelClass}>Description *</label>
+            <label htmlFor="editjob-10" className={labelClass}>Description *</label>
             <p className="text-[0.65rem] text-[var(--muted)]">
               Supports HTML for formatting (paragraphs, lists, bold, etc.)
             </p>
-            <textarea
+            <textarea id="editjob-10"
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -283,6 +283,7 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
 
         {/* Submit */}
         <button
+          aria-label="Save changes"
           type="submit"
           disabled={!title.trim() || !category || !description.trim() || submitting}
           className="mt-5 w-full rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40"
@@ -293,6 +294,7 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
 
       {/* Close Job */}
       <button
+        aria-label="Close job"
         onClick={handleClose}
         disabled={closing}
         className="mt-3 w-full rounded-full border border-red-400 px-5 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 disabled:opacity-40 dark:hover:bg-red-950"

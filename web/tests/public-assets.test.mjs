@@ -37,3 +37,16 @@ test('built HTML and linked manifests reference existing local assets', async ()
   assert.deepEqual(missing, [], `Missing built assets: ${missing.join(', ')}`)
   assert.equal(manifests.length, 1, 'Publish exactly one local manifest')
 })
+
+test('release metadata and template share images are published', async () => {
+  const release = JSON.parse(await readFile(new URL('release.json', dist), 'utf8'))
+  assert.equal(release.commit, process.env.VITE_COMMIT_SHA || 'local')
+  const html = await readFile(new URL('index.html', dist), 'utf8')
+  for (const property of ['og:image', 'twitter:image']) {
+    assert.match(html, new RegExp(`(?:property|name)="${property}" content="https://jobs.proappstore.online/og-image.png"`))
+  }
+  const image = await readFile(new URL('og-image.png', dist))
+  assert.equal(image.subarray(1, 4).toString(), 'PNG')
+  const manifest = JSON.parse(await readFile(new URL('manifest.webmanifest', dist), 'utf8'))
+  assert.ok(manifest.icons.some(icon => icon.purpose.includes('maskable') && icon.sizes === '512x512'))
+})
