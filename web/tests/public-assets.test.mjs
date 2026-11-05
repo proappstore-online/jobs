@@ -50,3 +50,13 @@ test('release metadata and template share images are published', async () => {
   const manifest = JSON.parse(await readFile(new URL('manifest.webmanifest', dist), 'utf8'))
   assert.ok(manifest.icons.some(icon => icon.purpose.includes('maskable') && icon.sizes === '512x512'))
 })
+
+test('initial scripts are measurable local bundles and the service worker is published', async () => {
+  const html = await readFile(new URL('index.html', dist), 'utf8')
+  const scripts = [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)].map(([, src]) => src)
+  assert.ok(scripts.length > 0, 'The app has an entry script')
+  for (const src of scripts) {
+    assert.match(src, /^\/assets\/[^?#]+\.js$/, `Unmeasurable initial script: ${src}`)
+  }
+  assert.ok((await stat(new URL('sw.js', dist))).isFile(), 'PWA worker remains available')
+})

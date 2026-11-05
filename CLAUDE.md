@@ -1,26 +1,26 @@
 # jobs (Pro)
 
-Two-sided job marketplace on ProAppStore — job seekers browse, search, save, apply; employers register companies and post jobs.
+Simple Seek/Indeed-style job marketplace on ProAppStore — job seekers browse, search, save, apply; employers register companies and post jobs. MVP scope and delivery order: [docs/MVP_PLAN.md](docs/MVP_PLAN.md), tracked by GitHub epic #3. Full GotJob parity is explicitly out of scope.
 
-- Subdomain: `jobs.proappstore.online` (pending DNS)
-- Pages preview: `proappstore-jobs.pages.dev`
+- Subdomain: `jobs.proappstore.online`
 - Dev: `pnpm install && pnpm dev` (port 5185)
 - Build: `pnpm build` (runs platform compliance check via prebuild)
 - Deploy: `git push origin main` (platform reusable workflow deploys to R2 at `jobs.proappstore.online`)
 - Tests: `pnpm --filter @jobs/web test:e2e`; set `E2E_BASE_URL` to check a deployed build.
+- Action regression: `pnpm test:actions` executes operator SQL against the real migrations in SQLite; also runs during prebuild.
 - Asset regression: `pnpm --filter @jobs/web build` builds and checks local HTML/manifest asset references; `pnpm test` checks an existing build.
 - The PWA plugin supplies the single published manifest. Icons and share images come from the platform template (`proappstore-online/template-app`, `web/public`). Browser install/share acceptance remains a manual check. `/release.json` identifies the deployed commit (`VITE_COMMIT_SHA` in CI).
 
-For platform conventions, read SKILLS.md:
-https://raw.githubusercontent.com/proappstore-online/proappstore/main/SKILLS.md
+For platform conventions, read https://proappstore.online/skills.md and https://docs.proappstore.online/admin-console/.
 
 ## Architecture
 
 - **D1 database** — 4 migrations (companies, jobs, saved_jobs, applications, recent_views, notifications)
-- **Schema in code** — `web/src/lib/db/core.ts`, run lazily via `ensureMigrated()`
+- **Schema** — deploy applies `migrations.json`; keep `web/src/lib/db/core.ts` aligned for the lazy `ensureMigrated()` fallback
 - **Hash routing** — all routes below
 - **HTML sanitization** — `lib/sanitize.ts` strips unsafe tags from job descriptions
-- **SQL injection protection** — employer update functions use column allowlists
+- **Registered actions** — all user data access goes through `mcp.json`, with caller-scoped employer writes
+- **Operator console** — PAS renders `mcp.json.operator_view` outside the app; role-gated owner/moderator actions inspect jobs/companies and close listings. See [docs/OPERATOR_CONSOLE.md](docs/OPERATOR_CONSOLE.md).
 
 ## Routes
 
@@ -52,6 +52,6 @@ https://raw.githubusercontent.com/proappstore-online/proappstore/main/SKILLS.md
 
 ## Data flow
 
-- Jobs come from two sources: employers posting via the UI (`source = 'employer'`) or future GotJob scraper ingestion (`source = 'gotjob'`)
-- All DB access requires auth (data worker validates Bearer token)
+- MVP jobs are posted by employers via the UI (`source = 'employer'`); scraper ingestion is deferred.
+- Current DB actions require auth; public discovery is tracked in #5. The SDK uses platform-cookie authentication.
 - Employer write operations verify ownership (`posted_by` / `owner_user_id`)

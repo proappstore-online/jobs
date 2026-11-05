@@ -15,6 +15,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: false,
       workbox: {
         navigateFallbackDenylist: [/^\/\.pas\//],
         globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2,wasm,json}'],

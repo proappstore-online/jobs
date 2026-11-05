@@ -403,6 +403,360 @@
       "sql": "SELECT COUNT(*) AS cnt FROM notifications WHERE user_id = :__user_id AND read = 0",
       "params": {},
       "requires_auth": true
+    },
+    {
+      "name": "op_list_jobs",
+      "description": "List jobs for owner/moderator review with search, status and keyset paging.",
+      "operation": "query",
+      "sql": "SELECT j.id AS job_id, j.title, c.name AS company_name, j.location, j.status, j.posted_at FROM jobs j JOIN companies c ON c.id = j.company_id WHERE (:q IS NULL OR j.title LIKE '%' || :q || '%' OR c.name LIKE '%' || :q || '%') AND (:status IS NULL OR j.status = :status) AND (:after IS NULL OR j.id > :after) ORDER BY j.id ASC LIMIT 50",
+      "params": {
+        "q": {
+          "type": "string",
+          "optional": true
+        },
+        "status": {
+          "type": "string",
+          "optional": true
+        },
+        "after": {
+          "type": "string",
+          "optional": true
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "app_roles": [
+          "owner",
+          "moderator"
+        ],
+        "caller_unscoped": {
+          "reason": "App owners and appointed moderators inspect marketplace listings across employers."
+        }
+      }
+    },
+    {
+      "name": "op_job_detail",
+      "description": "Inspect one listing without employer identity or applicant data.",
+      "operation": "query",
+      "sql": "SELECT j.id AS job_id, j.title, c.name AS company_name, j.description, j.location, j.location_type, j.employment_type, j.category, j.salary_min, j.salary_max, j.salary_currency, j.source, j.source_url, j.status, j.posted_at FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.id = :job_id LIMIT 1",
+      "params": {
+        "job_id": {
+          "type": "string"
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "app_roles": [
+          "owner",
+          "moderator"
+        ],
+        "caller_unscoped": {
+          "reason": "App owners and appointed moderators inspect marketplace listings across employers."
+        }
+      }
+    },
+    {
+      "name": "op_close_job",
+      "description": "Close an active listing as owner/moderator; stale or repeated requests change nothing.",
+      "operation": "execute",
+      "sql": "UPDATE jobs SET status = 'closed' WHERE id = :job_id AND status = :from_status AND status = 'active'",
+      "params": {
+        "job_id": {
+          "type": "string"
+        },
+        "from_status": {
+          "type": "string"
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "app_roles": [
+          "owner",
+          "moderator"
+        ],
+        "caller_unscoped": {
+          "reason": "App owners and appointed moderators may close one active listing by ID and expected status."
+        }
+      }
+    },
+    {
+      "name": "op_list_companies",
+      "description": "List companies for owner/moderator review with search and keyset paging.",
+      "operation": "query",
+      "sql": "SELECT id AS company_id, name, location, industry, created_at FROM companies WHERE (:q IS NULL OR name LIKE '%' || :q || '%' OR industry LIKE '%' || :q || '%') AND (:after IS NULL OR id > :after) ORDER BY id ASC LIMIT 50",
+      "params": {
+        "q": {
+          "type": "string",
+          "optional": true
+        },
+        "after": {
+          "type": "string",
+          "optional": true
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "app_roles": [
+          "owner",
+          "moderator"
+        ],
+        "caller_unscoped": {
+          "reason": "App owners and appointed moderators inspect marketplace listings across employers."
+        }
+      }
+    },
+    {
+      "name": "op_company_detail",
+      "description": "Inspect a company profile without exposing its owner identity.",
+      "operation": "query",
+      "sql": "SELECT id AS company_id, name, description, website, location, industry, size, created_at FROM companies WHERE id = :company_id LIMIT 1",
+      "params": {
+        "company_id": {
+          "type": "string"
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "app_roles": [
+          "owner",
+          "moderator"
+        ],
+        "caller_unscoped": {
+          "reason": "App owners and appointed moderators inspect marketplace listings across employers."
+        }
+      }
     }
-  ]
+  ],
+  "operator_view": {
+    "version": 1,
+    "admin_access": {
+      "roles": [
+        "moderator"
+      ]
+    },
+    "resources": [
+      {
+        "id": "jobs",
+        "kind": "reports",
+        "title": "Jobs",
+        "action": "op_list_jobs",
+        "columns": [
+          {
+            "key": "job_id",
+            "label": "Job ID"
+          },
+          {
+            "key": "title",
+            "label": "Title"
+          },
+          {
+            "key": "company_name",
+            "label": "Company"
+          },
+          {
+            "key": "location",
+            "label": "Location"
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "format": "badge"
+          },
+          {
+            "key": "posted_at",
+            "label": "Posted",
+            "format": "datetime"
+          }
+        ],
+        "search": {
+          "param": "q"
+        },
+        "page": {
+          "param": "after",
+          "column": "job_id"
+        },
+        "status": {
+          "column": "status",
+          "param": "status",
+          "states": [
+            {
+              "value": "active",
+              "label": "Active"
+            },
+            {
+              "value": "closed",
+              "label": "Closed"
+            }
+          ]
+        },
+        "detail": {
+          "action": "op_job_detail",
+          "param": "job_id",
+          "key": "job_id",
+          "fields": [
+            {
+              "key": "job_id",
+              "label": "Job ID"
+            },
+            {
+              "key": "title",
+              "label": "Title"
+            },
+            {
+              "key": "company_name",
+              "label": "Company"
+            },
+            {
+              "key": "location",
+              "label": "Location"
+            },
+            {
+              "key": "status",
+              "label": "Status",
+              "format": "badge"
+            },
+            {
+              "key": "posted_at",
+              "label": "Posted",
+              "format": "datetime"
+            },
+            {
+              "key": "description",
+              "label": "Description"
+            },
+            {
+              "key": "location_type",
+              "label": "Work mode"
+            },
+            {
+              "key": "employment_type",
+              "label": "Employment type"
+            },
+            {
+              "key": "category",
+              "label": "Category"
+            },
+            {
+              "key": "salary_min",
+              "label": "Minimum salary",
+              "format": "number"
+            },
+            {
+              "key": "salary_max",
+              "label": "Maximum salary",
+              "format": "number"
+            },
+            {
+              "key": "salary_currency",
+              "label": "Currency"
+            },
+            {
+              "key": "source",
+              "label": "Source"
+            },
+            {
+              "key": "source_url",
+              "label": "Original listing"
+            }
+          ]
+        }
+      },
+      {
+        "id": "companies",
+        "kind": "users",
+        "title": "Companies",
+        "action": "op_list_companies",
+        "columns": [
+          {
+            "key": "company_id",
+            "label": "Company ID"
+          },
+          {
+            "key": "name",
+            "label": "Name"
+          },
+          {
+            "key": "location",
+            "label": "Location"
+          },
+          {
+            "key": "industry",
+            "label": "Industry"
+          },
+          {
+            "key": "created_at",
+            "label": "Registered",
+            "format": "datetime"
+          }
+        ],
+        "search": {
+          "param": "q"
+        },
+        "page": {
+          "param": "after",
+          "column": "company_id"
+        },
+        "detail": {
+          "action": "op_company_detail",
+          "param": "company_id",
+          "key": "company_id",
+          "fields": [
+            {
+              "key": "company_id",
+              "label": "Company ID"
+            },
+            {
+              "key": "name",
+              "label": "Name"
+            },
+            {
+              "key": "location",
+              "label": "Location"
+            },
+            {
+              "key": "industry",
+              "label": "Industry"
+            },
+            {
+              "key": "created_at",
+              "label": "Registered",
+              "format": "datetime"
+            },
+            {
+              "key": "description",
+              "label": "Description"
+            },
+            {
+              "key": "website",
+              "label": "Website"
+            },
+            {
+              "key": "size",
+              "label": "Size"
+            }
+          ]
+        }
+      }
+    ],
+    "actions": [
+      {
+        "id": "close_job",
+        "title": "Close listing",
+        "resource": "jobs",
+        "action": "op_close_job",
+        "params": {
+          "job_id": "job_id",
+          "from_status": "status"
+        },
+        "confirm": "Close this listing and remove it from active job search?",
+        "transition": {
+          "from": [
+            "active"
+          ],
+          "to": "closed"
+        },
+        "target": "job_id"
+      }
+    ]
+  }
 }

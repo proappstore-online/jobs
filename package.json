@@ -7,9 +7,10 @@
   "repository": { "type": "git", "url": "git+https://github.com/proappstore-online/jobs.git" },
   "pnpm": { "onlyBuiltDependencies": ["esbuild"] },
   "scripts": {
-    "test": "pnpm --filter @jobs/web test",
+    "test": "pnpm test:actions && pnpm --filter @jobs/web test",
+    "test:actions": "node --test tests/*.test.mjs",
     "dev": "pnpm --filter @jobs/web dev",
-    "prebuild": "npx -y @proappstore/cli@latest check",
+    "prebuild": "npx -y @proappstore/cli@latest check && pnpm test:actions",
     "build": "pnpm --filter @jobs/web build",
     "preview": "pnpm --filter @jobs/web preview",
     "typecheck": "pnpm --filter @jobs/web exec tsc -b"
