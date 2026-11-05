@@ -19,6 +19,33 @@ async function mock(page: Page, signedIn = false, changes = 1) {
   })
   return calls
 }
+
+test('malformed auth intent does not break the job page', async ({ page }) => {
+  await mock(page, true)
+  await page.addInitScript(() => sessionStorage.setItem('jobs.intent', '{invalid'))
+  await page.goto('/#/job/job-a')
+  await expect(page.getByRole('heading', { name: 'Software Engineer', exact: true })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('jobs.intent'))).toBeNull()
+  await expect(page.getByRole('button', { name: 'Submit application' })).toHaveCount(0)
+})
+
+test('failed navigation clears the previous job and application controls', async ({ page }) => {
+  await mock(page)
+  await page.goto('/#/job/job-a')
+  await expect(page.getByRole('heading', { name: 'Software Engineer', exact: true })).toBeVisible()
+  await page.route('**/actions/get_job', route => route.fulfill({ status: 500, json: { error: 'unavailable' } }))
+  await page.evaluate(() => { location.hash = '#/job/unavailable' })
+  await expect(page.getByText('Could not load job. Please retry.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Apply', exact: true })).toHaveCount(0)
+})
+
+test('signed-out external apply requires auth and preserves its intent', async ({ page }) => {
+  await mock(page)
+  await page.route('**/actions/get_job', route => route.fulfill({ json: { rows: [{ ...job, source_url: 'https://example.test/vacancy' }] } }))
+  await page.goto('/#/job/job-a')
+  await page.getByRole('button', { name: 'Apply', exact: true }).filter({ visible: true }).click()
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('jobs.intent'))).toBe(JSON.stringify({ jobId: 'job-a', action: 'apply' }))
+})
 for (const width of [390, 1280]) {
   test(`public search, detail and sign-in intent at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })

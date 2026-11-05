@@ -1,4 +1,4 @@
-import { requestSignIn } from '../lib/auth-intent'
+import { consumeJobIntent, requestSignIn } from '../lib/auth-intent'
 import { useEffect, useState } from 'react'
 import { getJob, isJobSaved, saveJob, unsaveJob, getCompanyJobs, applyToJob, getApplicationStatus } from '../lib/db'
 import type { JobWithCompany } from '../lib/db'
@@ -53,6 +53,10 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    setJob(null)
+    setShowApply(false)
+    setApplyMsg(null)
+    setRelatedJobs([])
     ;(async () => {
       const [j, isSaved, appStatus] = await Promise.all([
         getJob(jobId),
@@ -84,13 +88,13 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
 
   useEffect(() => {
     if (!user || !job) return
-    const raw = sessionStorage.getItem('jobs.intent')
-    if (!raw) return
-    const intent = JSON.parse(raw)
-    if (intent.jobId !== jobId) return
-    sessionStorage.removeItem('jobs.intent')
-    if (intent.action === 'apply') setShowApply(true)
-    if (intent.action === 'save') saveJob(user.id, jobId).then(() => setSaved(true)).catch(() => setApplyMsg('Could not save job. Please retry.'))
+    if (job.id !== jobId) return
+    const intent = consumeJobIntent(jobId)
+    if (intent === 'apply') {
+      if (job.source_url) setApplyMsg('Signed in. Select Apply to continue to the employer website.')
+      else if (!applied) setShowApply(true)
+    }
+    if (intent === 'save') saveJob(user.id, jobId).then(() => setSaved(true)).catch(() => setApplyMsg('Could not save job. Please retry.'))
   }, [user, job, jobId])
 
   async function handleToggleSave() {
@@ -121,8 +125,8 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
 
   async function handleApply() {
     if (!job || applied) return
-    if (job.source_url) { window.open(job.source_url, '_blank', 'noopener,noreferrer'); return }
     if (!user) { requestSignIn(jobId, 'apply'); return }
+    if (job.source_url) { window.open(job.source_url, '_blank', 'noopener,noreferrer'); return }
     setShowApply(true)
   }
   async function submitApplication(e: React.FormEvent) {

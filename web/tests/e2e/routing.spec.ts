@@ -18,6 +18,7 @@ test.describe('Route gating (unauthenticated)', () => {
     '#/register-company',
     '#/post-job/some-company',
     '#/edit-job/some-job',
+    '#/edit-company/some-company',
     '#/applicants/some-job',
   ]
 

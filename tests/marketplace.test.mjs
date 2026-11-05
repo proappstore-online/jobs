@@ -98,3 +98,15 @@ test('every action compiles against all real migrations', t => {
   const { db } = fixture(t)
   for (const tool of tools.values()) for (const sql of tool.statements ?? [tool.sql]) assert.doesNotThrow(() => db.prepare(sql), tool.name)
 })
+
+test('only discovery actions are public; editing and candidate reads require auth', () => {
+  const publicNames = [...tools.values()].filter(tool => tool.requires_auth === false).map(tool => tool.name).sort()
+  assert.deepEqual(publicNames, ['list_jobs', 'count_jobs', 'get_job', 'get_job_by_slug', 'list_companies', 'get_company', 'get_company_by_slug', 'company_jobs', 'search_jobs'].sort())
+  for (const name of publicNames) {
+    assert.equal(tools.get(name).auth, undefined, name)
+  }
+  for (const name of ['get_my_job', 'get_my_companies', 'get_my_jobs', 'list_saved_jobs', 'list_applications', 'get_job_applicants', 'get_application_status']) {
+    assert.equal(tools.get(name).requires_auth, true, name)
+    assert.match(tools.get(name).sql, /:__user_id/, name)
+  }
+})
