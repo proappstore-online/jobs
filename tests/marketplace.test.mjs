@@ -32,6 +32,28 @@ function fixture(t) {
   return { db, run, post }
 }
 const contact = { job_id: 'job-a', candidate_name: 'Candidate A', contact_email: 'candidate@example.test', note: 'Please consider my application.', notification_id: 'notice-a' }
+test('release journey preserves saved jobs, private review, one notification and closed-job protection', t => {
+  const { run, db } = fixture(t)
+  assert.equal(run('list_jobs', { location: 'Melbourne', location_like: '%Melbourne%' }).length, 0)
+  assert.equal(run('list_jobs', { search: 'Engineer', search_like: '%Engineer%', location: 'Sydney', location_like: '%Sydney%' }).length, 1)
+  assert.equal(run('get_company_by_slug', { slug: 'acme' })[0].name, 'Acme')
+  run('save_job', { job_id: 'job-a' })
+  assert.equal(run('list_saved_jobs')[0].id, 'job-a')
+  assert.equal(run('list_saved_jobs', {}, 'candidate-b').length, 0)
+  run('apply_to_job', contact)
+  assert.equal(run('get_job_applicants', { job_id: 'job-a' }, 'employer-a')[0].note, contact.note)
+  run('update_applicant_status', { job_id: 'job-a', applicant_user_id: 'candidate-a', status: 'interview' }, 'employer-a')
+  assert.equal(run('list_applications')[0].application_status, 'interview')
+  assert.deepEqual(run('apply_to_job', { ...contact, notification_id: 'duplicate' }).map(r => Number(r.changes)), [0, 0])
+  assert.equal(run('close_job', { job_id: 'job-a' }, 'employer-a').changes, 1)
+  assert.equal(run('get_job', { job_id: 'job-a' }).length, 0)
+  assert.deepEqual(run('apply_to_job', { ...contact, notification_id: 'closed' }, 'candidate-b').map(r => Number(r.changes)), [0, 0])
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM applications').get().n, 1)
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM notifications').get().n, 1)
+  assert.equal(run('get_job_applicants', { job_id: 'job-a' }, 'employer-a').length, 1)
+  assert.equal(run('withdraw_application', { job_id: 'job-a' }).changes, 1)
+  assert.equal(run('list_applications').length, 0)
+})
 test('application is private to its candidate and job poster; two candidates remain isolated', t => {
   const { run } = fixture(t)
   assert.equal(run('apply_to_job', contact)[0].changes, 1)

@@ -23,7 +23,7 @@ Build the simplest Seek/Indeed-style marketplace: candidates find a real job and
 
 Tracked by [epic #3](https://github.com/proappstore-online/jobs/issues/3): [operator console #4](https://github.com/proappstore-online/jobs/issues/4), [public discovery #5](https://github.com/proappstore-online/jobs/issues/5), [employer workflow #6](https://github.com/proappstore-online/jobs/issues/6), [applications #7](https://github.com/proappstore-online/jobs/issues/7), and [launch #8](https://github.com/proappstore-online/jobs/issues/8).
 
-Work goes directly to main under PAS repository conventions. Tests and platform contract validation precede deployment. An issue remains open when live acceptance is still outstanding.
+Work goes directly to main under PAS repository conventions. Tests and platform contract validation precede deployment. An issue normally remains open when live acceptance is still outstanding. For #8, the maintainer explicitly requested administrative closure with verified local evidence and external blockers documented in RELEASE_CHECKLIST.md. This exception does not approve launch or waive the live acceptance criteria below.
 
 ## Platform boundary
 
