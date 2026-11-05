@@ -94,6 +94,26 @@ test('public actions are bounded explicit reads without identity or application 
   assert.equal(run('list_jobs', { search: 'Engineer', search_like: '%Engineer%', location: 'Sydney', location_like: '%Sydney%' }).length, 1)
   assert.equal(run('list_jobs', { search: 'missing', search_like: '%missing%' }).length, 0)
 })
+
+test('employer updates preserve omitted values and reject foreign owners and invalid partial salary ranges', t => {
+  const { run } = fixture(t)
+  assert.equal(run('update_job', { job_id: 'job-a', set_title: 1, title: 'Stolen' }, 'employer-b').changes, 0)
+  assert.equal(run('update_company', { company_id: 'company-a', set_name: 1, name: ' ' }, 'employer-a').changes, 0)
+  for (const field of ['title', 'description', 'category']) {
+    assert.equal(run('update_job', { job_id: 'job-a', ['set_' + field]: 1, [field]: ' ' }, 'employer-a').changes, 0)
+  }
+  run('update_job', { job_id: 'job-a', set_salary_min: 1, salary_min: 100, set_salary_max: 1, salary_max: 200 }, 'employer-a')
+  assert.equal(run('update_job', { job_id: 'job-a', set_salary_min: 1, salary_min: 300 }, 'employer-a').changes, 0)
+  assert.equal(run('update_job', { job_id: 'job-a', set_salary_max: 1, salary_max: 50 }, 'employer-a').changes, 0)
+  run('update_job', { job_id: 'job-a', set_location: 1, location: '' }, 'employer-a')
+  const row = run('get_my_job', { job_id: 'job-a' }, 'employer-a')[0]
+  assert.equal(row.location, '')
+  assert.equal(row.salary_min, 100)
+  assert.equal(row.salary_max, 200)
+  assert.equal(row.title, 'Engineer')
+  assert.equal(run('register_company', { id: 'second', name: 'Second company', slug: 'second' }, 'employer-a').changes, 1)
+  assert.equal(run('get_my_companies', {}, 'employer-a').length, 2)
+})
 test('every action compiles against all real migrations', t => {
   const { db } = fixture(t)
   for (const tool of tools.values()) for (const sql of tool.statements ?? [tool.sql]) assert.doesNotThrow(() => db.prepare(sql), tool.name)

@@ -36,6 +36,9 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setNotFound(false)
+    setError(null)
     ;(async () => {
       const job = await getMyJob(jobId)
       if (cancelled) return
@@ -55,7 +58,12 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
       setSalaryCurrency(job.salary_currency)
       setDescription(job.description)
       setLoading(false)
-    })()
+    })().catch(() => {
+      if (cancelled) return
+      setError('Could not load this listing. Go back and retry.')
+      setNotFound(true)
+      setLoading(false)
+    })
     return () => { cancelled = true }
   }, [jobId])
 
@@ -109,7 +117,7 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
   if (notFound) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
-        <p className="text-sm text-[var(--ink)]">Job not found</p>
+        <p role="alert" className="text-sm text-[var(--ink)]">{error ?? 'Job not found or not owned by you.'}</p>
         <button
           onClick={onBack}
           className="mt-3 text-sm text-[var(--muted)] hover:text-[var(--ink)]"

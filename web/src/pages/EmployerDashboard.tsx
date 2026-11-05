@@ -45,12 +45,14 @@ export function EmployerDashboard({
   const [companies, setCompanies] = useState<CompanyRow[] | null>(null)
   const [jobsByCompany, setJobsByCompany] = useState<Record<string, MyJob[]>>({})
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    setError(null)
     ;(async () => {
       const rows = await getMyCompanies(user.id)
       if (cancelled) return
@@ -64,18 +66,18 @@ export function EmployerDashboard({
       }
       setJobsByCompany(jobMap)
       setLoading(false)
-    })()
+    })().catch(() => {
+      if (cancelled) return
+      setError('Could not load your companies and listings. Please retry.')
+      setLoading(false)
+    })
     return () => {
       cancelled = true
     }
   }, [user.id, refreshKey])
 
-  // Refresh when this component mounts (e.g. navigating back from PostJob)
-  useEffect(() => {
-    setRefreshKey((k) => k + 1)
-  }, [])
-
   if (loading) return <Loading />
+  if (error) return <main className="mx-auto max-w-2xl p-6"><p role="alert">{error}</p><button onClick={() => setRefreshKey(k => k + 1)}>Retry</button></main>
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">

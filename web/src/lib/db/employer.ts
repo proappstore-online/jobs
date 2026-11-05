@@ -74,6 +74,7 @@ export async function registerCompany(
   _userId: string,
   data: { name: string; description?: string; website?: string; location?: string; industry?: string; size?: string },
 ): Promise<CompanyRow> {
+  if (!data.name.trim()) throw new Error('Company name is required.')
   await ensureMigrated()
   const id = rid()
   const now = Date.now()
@@ -109,6 +110,7 @@ export async function updateCompany(
   companyId: string,
   data: Partial<{ name: string; description: string; website: string; location: string; industry: string; size: string }>,
 ): Promise<void> {
+  if (data.name !== undefined && !data.name.trim()) throw new Error('Company name is required.')
   await ensureMigrated()
   await x('update_company', { company_id: companyId, ...updateParams(data) })
 }
