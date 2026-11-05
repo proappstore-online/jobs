@@ -28,7 +28,7 @@ The initial contract was also checked with PAS's own `validateOperatorView`, `se
 
 Before closing #4, verify the registered contract in an authorized Jobs owner session, then exercise the console as owner/moderator and attempt the actions as an ordinary user. Confirm the audit record and a stale-action conflict. The currently connected MCP Google identity was refused owner-scoped inspection, so that live acceptance remains pending until an authorized session is available.
 
-Known v1 follow-up: #7 adds server-side rejection of applications to closed jobs and the corresponding candidate UI. Closing a listing currently removes it from search; it does not yet fix the legacy application's closed-job behavior.
+Server-side rejection of applications to closed jobs is implemented and confirmed by the marketplace SQL regression tests in `tests/marketplace.test.mjs`. Closing a listing removes it from active search and prevents new applications while preserving existing applications.
 
 ## Build compatibility
 
