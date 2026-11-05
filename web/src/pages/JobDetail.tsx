@@ -54,6 +54,9 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
     let cancelled = false
     setLoading(true)
     setJob(null)
+    setCandidateName('')
+    setContactEmail('')
+    setMessage('')
     setShowApply(false)
     setApplyMsg(null)
     setRelatedJobs([])

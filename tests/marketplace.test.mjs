@@ -130,3 +130,21 @@ test('only discovery actions are public; editing and candidate reads require aut
     assert.match(tools.get(name).sql, /:__user_id/, name)
   }
 })
+
+test('two employers see only their own candidates and cannot change foreign applications', t => {
+  const { run, post } = fixture(t)
+  run('post_job', { ...post, id: 'job-b', company_id: 'company-b' }, 'employer-b')
+  run('apply_to_job', contact)
+  run('apply_to_job', { ...contact, job_id: 'job-b', candidate_name: 'Candidate B', contact_email: 'b@example.test', notification_id: 'notice-b' }, 'candidate-b')
+  assert.deepEqual(run('get_job_applicants', { job_id: 'job-a' }, 'employer-a').map(a => a.contact_email), [contact.contact_email])
+  assert.deepEqual(run('get_job_applicants', { job_id: 'job-b' }, 'employer-b').map(a => a.contact_email), ['b@example.test'])
+  assert.equal(run('get_job_applicants', { job_id: 'job-b' }, 'employer-a').length, 0)
+  const update = { job_id: 'job-a', applicant_user_id: 'candidate-a', status: 'interview' }
+  assert.equal(run('update_applicant_status', update, 'employer-b').changes, 0)
+  assert.equal(run('update_applicant_status', update, 'employer-a').changes, 1)
+  assert.equal(run('get_application_status', { job_id: 'job-a' }).at(0).status, 'interview')
+  assert.equal(run('list_applications', {}, 'candidate-b').at(0).contact_email, 'b@example.test')
+  assert.equal(run('withdraw_application', { job_id: 'job-a' }, 'candidate-b').changes, 0)
+  assert.equal(run('withdraw_application', { job_id: 'job-a' }).changes, 1)
+  assert.equal(run('get_application_status', { job_id: 'job-a' }).length, 0)
+})

@@ -190,3 +190,37 @@ test('save intent resumes after auth and failed employer writes remain on the fo
   await expect(page.getByRole('alert')).toContainText('No changes saved')
   await expect(page.getByRole('heading', { name: 'Edit company' })).toBeVisible()
 })
+
+for (const changes of [0, 1]) {
+  test(`candidate sees contact and status; withdrawal changes=${changes}`, async ({ page }) => {
+    await mock(page, true, changes)
+    await page.route('**/actions/list_applications', route => route.fulfill({ json: { rows: [{ ...job, application_status: 'interview', applied_at: Date.now(), candidate_name: 'Jane Candidate', contact_email: 'jane@example.test', note: 'My message' }] } }))
+    await page.goto('/#/applications')
+    await expect(page.getByText('interview', { exact: true })).toBeVisible()
+    await expect(page.getByText(/Jane Candidate/)).toContainText('jane@example.test')
+    await page.getByRole('button', { name: 'Withdraw', exact: true }).click()
+    await page.getByRole('button', { name: 'Confirm withdraw' }).click()
+    if (changes) await expect(page.getByText('No applications yet')).toBeVisible()
+    else {
+      await expect(page.getByRole('alert')).toContainText('Application was not withdrawn')
+      await expect(page.getByText('Software Engineer', { exact: true })).toBeVisible()
+    }
+  })
+}
+
+test('older applications show missing contact and failed status writes stay unchanged', async ({ page }) => {
+  await mock(page, true, 0)
+  await page.route('**/actions/get_job_applicants', route => route.fulfill({ json: { rows: [{ user_id: 'legacy', status: 'applied', candidate_name: null, contact_email: null, note: null, applied_at: 1 }] } }))
+  await page.goto('/#/applicants/job-a')
+  await expect(page.getByText('Contact details not supplied with this older application.')).toBeVisible()
+  await page.getByLabel('Application status').selectOption('interview')
+  await expect(page.getByRole('alert')).toContainText('No changes saved')
+  await expect(page.getByLabel('Application status')).toHaveValue('applied')
+})
+
+test('application read failures show an error', async ({ page }) => {
+  await mock(page, true)
+  await page.route('**/actions/list_applications', route => route.fulfill({ status: 500, json: { error: 'unavailable' } }))
+  await page.goto('/#/applications')
+  await expect(page.getByRole('alert')).toContainText('Could not load applications')
+})

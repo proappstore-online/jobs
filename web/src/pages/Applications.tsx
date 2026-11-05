@@ -1,15 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { listApplications, withdrawApplication } from '../lib/db'
-import type { JobWithCompany } from '../lib/db'
+import type { ApplicationWithJob } from '../lib/db/applications'
 import { JobCard } from '../components/JobCard'
 import { Loading } from '../components/Loading'
 import { timeAgo } from '../lib/constants'
-
-export interface ApplicationWithJob extends JobWithCompany {
-  application_status: string
-  applied_at: number
-  note: string | null
-}
 
 interface ApplicationsProps {
   user: { id: string }
@@ -35,13 +29,16 @@ export function Applications({ user, onOpenJob, onBack }: ApplicationsProps) {
 
   useEffect(() => {
     let cancelled = false
+    setApps(null)
+    setLoading(true)
+    setError('')
     ;(async () => {
       const rows = await listApplications(user.id)
       if (!cancelled) {
         setApps(rows)
         setLoading(false)
       }
-    })()
+    })().catch(() => { if (!cancelled) { setLoading(false); setError('Could not load applications. Please refresh and retry.') } })
     return () => {
       cancelled = true
     }
@@ -114,6 +111,9 @@ export function Applications({ user, onOpenJob, onBack }: ApplicationsProps) {
                   onToggleSave={() => {}}
                 />
 
+                <p className="mt-2 text-xs text-[var(--muted)]">
+                  {application.candidate_name || 'Name not supplied'} &mdash; {application.contact_email || 'Contact details not supplied with this older application.'}
+                </p>
                 {/* Note + withdraw row */}
                 <div className="mt-1.5 flex items-start justify-between gap-3 px-1">
                   {application.note ? (

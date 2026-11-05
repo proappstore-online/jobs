@@ -91,7 +91,7 @@ export function Applicants({ user, jobId, onBack }: ApplicantsProps) {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <span className="text-sm font-medium text-[var(--ink)]">
-                    {a.candidate_name || 'Legacy applicant ? name not supplied'}
+                    {a.candidate_name || 'Legacy applicant: name not supplied'}
                   </span>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <Badge

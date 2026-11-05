@@ -21,6 +21,7 @@ function fixture(t) {
     job.run(id, i % 2 ? 'company-b' : 'company-a', `Engineer ${i}`, id, 'Job description', 'Engineering', i === 54 ? 'closed' : 'active', `private-owner-${i % 2 ? 'b' : 'a'}`, i + 1, i + 1)
   }
   db.prepare("INSERT INTO applications (id, user_id, job_id, note, applied_at) VALUES ('application-a', 'private-candidate', 'job-000', 'private application note', 1)").run()
+  db.exec("UPDATE applications SET candidate_name = 'Private Name', contact_email = 'private@example.test'")
   function execute(name, params = {}) {
     const tool = tools.get(name)
     const bound = Object.fromEntries(Object.entries(tool.params).map(([key, value]) => [key, params[key] ?? value.default ?? null]))
@@ -77,7 +78,7 @@ test('console queries return only declared public listing/company fields', (t) =
     assert.deepEqual(Object.keys(rows[0]).sort(), resource.columns.map((c) => c.key).sort())
     const detail = execute(resource.detail.action, { [resource.detail.param]: rows[0][resource.detail.key] })
     assert.deepEqual(Object.keys(detail[0]).sort(), resource.detail.fields.map((c) => c.key).sort())
-    assert.doesNotMatch(JSON.stringify([rows, detail]), /private-owner|private-candidate|private application note/)
+    assert.doesNotMatch(JSON.stringify([rows, detail]), /private-owner|private-candidate|private application note|Private Name|private@example.test/)
   }
 })
 
