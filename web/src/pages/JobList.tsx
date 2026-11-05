@@ -1,3 +1,4 @@
+import { requestSignIn } from '../lib/auth-intent'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   listJobs,
@@ -11,7 +12,7 @@ import { JobCard } from '../components/JobCard'
 import { Filters } from '../components/Filters'
 
 interface JobListProps {
-  user: { id: string }
+  user: { id: string } | null
   onOpenJob: (id: string) => void
   onOpenCompany: (slug: string) => void
   onOpenSaved: () => void
@@ -34,6 +35,7 @@ const LOCATION_TYPE_LABELS: Record<string, string> = {
 
 export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
   const [jobs, setJobs] = useState<JobWithCompany[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [total, setTotal] = useState(0)
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -78,11 +80,12 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
   useEffect(() => {
     const id = ++fetchCount.current
     setLoading(true)
+    setError(null)
     const opts = buildOpts()
     Promise.all([listJobs(opts), countJobs(opts)])
       .then(async ([rows, cnt]) => {
         if (id !== fetchCount.current) return
-        const savedChecks = await Promise.all(rows.map((j) => isJobSaved(user.id, j.id)))
+        const savedChecks = await Promise.all(rows.map((j) => (user ? isJobSaved(user.id, j.id) : Promise.resolve(false))))
         if (id !== fetchCount.current) return
         const saved = new Set<string>()
         rows.forEach((j, i) => {
@@ -92,15 +95,15 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
         setJobs(rows)
         setTotal(cnt)
         setLoading(false)
-      })
-  }, [buildOpts, user.id])
+      }).catch(() => { if (id === fetchCount.current) { setLoading(false); setError('Could not load jobs. Please retry.'); } })
+  }, [buildOpts, user?.id])
 
   async function handleLoadMore() {
     if (!jobs) return
     setLoadingMore(true)
     const opts = buildOpts(jobs.length)
     const rows = await listJobs(opts)
-    const savedChecks = await Promise.all(rows.map((j) => isJobSaved(user.id, j.id)))
+    const savedChecks = await Promise.all(rows.map((j) => (user ? isJobSaved(user.id, j.id) : Promise.resolve(false))))
     const newSaved = new Set(savedSet)
     rows.forEach((j, i) => {
       if (savedChecks[i]) newSaved.add(j.id)
@@ -111,6 +114,7 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
   }
 
   async function handleToggleSave(jobId: string) {
+    if (!user) { requestSignIn(jobId, 'save'); return }
     const isSaved = savedSet.has(jobId)
     const newSet = new Set(savedSet)
     if (isSaved) {
@@ -123,6 +127,8 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
       await saveJob(user.id, jobId)
     }
   }
+
+  if (error) return <div role="alert" className="p-6">{error}<button onClick={() => window.location.reload()}>Retry</button></div>
 
   // Build active filter pills
   const activeFilters: { key: string; label: string; clear: () => void }[] = []

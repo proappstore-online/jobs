@@ -1,5 +1,4 @@
-import { q } from '../actions'
-import { ensureMigrated } from './core'
+import { publicQuery as q } from '../actions'
 
 export interface JobRow {
   id: string
@@ -53,33 +52,27 @@ function filterParams(opts: ListJobsOpts): Record<string, unknown> {
 }
 
 export async function listJobs(opts: ListJobsOpts = {}): Promise<JobWithCompany[]> {
-  await ensureMigrated()
   return q<JobWithCompany>('list_jobs', {
     ...filterParams(opts),
-    limit: opts.limit ?? 20,
     offset: opts.offset ?? 0,
   })
 }
 
 export async function countJobs(opts: ListJobsOpts = {}): Promise<number> {
-  await ensureMigrated()
   const rows = await q<{ cnt: number }>('count_jobs', filterParams(opts))
   return rows[0]?.cnt ?? 0
 }
 
 export async function getJob(id: string): Promise<JobWithCompany | null> {
-  await ensureMigrated()
   const rows = await q<JobWithCompany>('get_job', { job_id: id })
   return rows[0] ?? null
 }
 
 export async function getJobBySlug(slug: string): Promise<JobWithCompany | null> {
-  await ensureMigrated()
   const rows = await q<JobWithCompany>('get_job_by_slug', { slug })
   return rows[0] ?? null
 }
 
 export async function searchJobs(query: string): Promise<JobWithCompany[]> {
-  await ensureMigrated()
   return q<JobWithCompany>('search_jobs', { term: `%${query}%` })
 }

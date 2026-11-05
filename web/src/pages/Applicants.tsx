@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getJob, getJobApplicants, updateApplicantStatus } from '../lib/db'
+import { getMyJob, getJobApplicants, updateApplicantStatus } from '../lib/db'
 import type { JobWithCompany } from '../lib/db'
 import { Badge } from '../components/Badge'
 import { Loading } from '../components/Loading'
@@ -8,6 +8,8 @@ import { timeAgo } from '../lib/constants'
 interface ApplicantRow {
   user_id: string
   status: string
+  candidate_name: string | null
+  contact_email: string | null
   note: string | null
   applied_at: number
 }
@@ -29,24 +31,27 @@ const STATUS_OPTIONS = ['applied', 'interview', 'offer', 'rejected'] as const
 export function Applicants({ user, jobId, onBack }: ApplicantsProps) {
   const [job, setJob] = useState<JobWithCompany | null>(null)
   const [applicants, setApplicants] = useState<ApplicantRow[]>([])
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
   const handleStatusChange = async (applicantUserId: string, newStatus: string) => {
+    try {
     await updateApplicantStatus(user.id, jobId, applicantUserId, newStatus)
     setApplicants((prev) =>
       prev.map((a) => (a.user_id === applicantUserId ? { ...a, status: newStatus } : a)),
     )
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not update status') }
   }
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const [j, rows] = await Promise.all([getJob(jobId), getJobApplicants(user.id, jobId)])
+      const [j, rows] = await Promise.all([getMyJob(jobId), getJobApplicants(user.id, jobId)])
       if (cancelled) return
       setJob(j)
       setApplicants(rows)
       setLoading(false)
-    })()
+    })().catch(() => { if (!cancelled) { setLoading(false); setError('Could not load applicants. Please refresh and retry.') } })
     return () => {
       cancelled = true
     }
@@ -69,6 +74,7 @@ export function Applicants({ user, jobId, onBack }: ApplicantsProps) {
         {job ? job.title : 'Job'} &mdash; Applicants
       </h1>
 
+      {error && <p role="alert">{error}</p>}
       {/* Count */}
       <p className="mt-1 text-sm text-[var(--muted)]">
         {applicants.length} {applicants.length === 1 ? 'applicant' : 'applicants'}
@@ -85,7 +91,7 @@ export function Applicants({ user, jobId, onBack }: ApplicantsProps) {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <span className="text-sm font-medium text-[var(--ink)]">
-                    {a.user_id.slice(0, 12)}...
+                    {a.candidate_name || 'Legacy applicant ? name not supplied'}
                   </span>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <Badge
@@ -108,6 +114,7 @@ export function Applicants({ user, jobId, onBack }: ApplicantsProps) {
                   ))}
                 </select>
               </div>
+              {a.contact_email ? <a href={`mailto:${a.contact_email}`}>{a.contact_email}</a> : <p>Contact details not supplied with this older application.</p>}
               {a.note && (
                 <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">
                   {a.note}

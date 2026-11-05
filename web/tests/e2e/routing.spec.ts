@@ -12,13 +12,10 @@ test.describe('Route gating (unauthenticated)', () => {
 
   const guardedHashes = [
     '#/saved',
-    '#/companies',
     '#/applications',
     '#/notifications',
     '#/employer',
     '#/register-company',
-    '#/job/some-id',
-    '#/company/some-slug',
     '#/post-job/some-company',
     '#/edit-job/some-job',
     '#/applicants/some-job',
@@ -44,15 +41,15 @@ test.describe('Hash routing (structure)', () => {
     )
   })
 
-  test('root path shows sign-in (no hash)', async ({ page }) => {
+  test('root path offers public browsing', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: /jobs/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Jobs', exact: true })).toBeVisible()
   })
 
-  test('unknown hash shows sign-in (falls through to browse)', async ({ page }) => {
+  test('unknown hash falls through to public browse', async ({ page }) => {
     await page.goto('/#/unknown-route')
     await expect(
-      page.getByRole('button', { name: /sign in with google/i }),
+      page.getByRole('button', { name: 'Sign in', exact: true }),
     ).toBeVisible()
   })
 })

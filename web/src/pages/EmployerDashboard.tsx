@@ -19,6 +19,7 @@ interface MyJob {
 
 interface EmployerDashboardProps {
   user: { id: string }
+  onEditCompany: (companyId: string) => void
   onPostJob: (companyId: string) => void
   onEditJob: (jobId: string) => void
   onViewApplicants: (jobId: string) => void
@@ -34,6 +35,7 @@ const statusColor: Record<string, 'mint' | 'muted' | 'accent'> = {
 
 export function EmployerDashboard({
   user,
+  onEditCompany,
   onPostJob,
   onEditJob,
   onViewApplicants,
@@ -90,6 +92,7 @@ export function EmployerDashboard({
         Employer Dashboard
       </h1>
 
+      <button className="mt-4" onClick={onRegisterCompany}>Register another company</button>
       {/* No companies CTA */}
       {companies && companies.length === 0 && (
         <div className="mt-8 rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5 text-center">
@@ -138,6 +141,7 @@ export function EmployerDashboard({
                 </button>
               </div>
 
+              <button onClick={() => onEditCompany(company.id)}>Edit company</button>
               {/* Jobs list */}
               {jobs.length > 0 ? (
                 <div className="mt-4 space-y-3">

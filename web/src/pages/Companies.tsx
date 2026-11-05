@@ -11,6 +11,7 @@ interface CompaniesProps {
 
 export function Companies({ onOpenCompany, onBack }: CompaniesProps) {
   const [companies, setCompanies] = useState<CompanyRow[] | null>(null)
+  const [error, setError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -34,9 +35,10 @@ export function Companies({ onOpenCompany, onBack }: CompaniesProps) {
         setCompanies(rows)
         setLoading(false)
       },
-    )
+    ).catch(() => { if (id === fetchCount.current) { setError(true); setLoading(false) } })
   }, [debouncedSearch])
 
+  if (error) return <p role="alert">Could not load companies. Please refresh and retry.</p>
   if (loading && !companies) return <Loading />
 
   return (

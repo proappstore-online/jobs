@@ -11,7 +11,7 @@ test.describe('Sign-in', () => {
   })
 
   test('renders sign-in page when unauthenticated', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/#/saved')
     await expect(page.getByRole('heading', { name: /jobs/i })).toBeVisible()
     await expect(page.getByText(/find your next role/i)).toBeVisible()
     await expect(page.getByRole('button', { name: /sign in with google/i })).toBeVisible()
@@ -20,7 +20,7 @@ test.describe('Sign-in', () => {
   })
 
   test('Google sign-in fires OAuth start request', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/#/saved')
     const oauthRequest = page.waitForRequest(
       (req) => new URL(req.url()).pathname === '/.pas/auth/start',
       { timeout: 5_000 },
@@ -33,7 +33,7 @@ test.describe('Sign-in', () => {
   })
 
   test('GitHub sign-in fires OAuth start request', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/#/saved')
     const oauthRequest = page.waitForRequest(
       (req) => new URL(req.url()).pathname === '/.pas/auth/start',
       { timeout: 5_000 },

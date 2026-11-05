@@ -15,6 +15,8 @@ import { PostJob } from './pages/PostJob'
 import { EditJob } from './pages/EditJob'
 import { Applicants } from './pages/Applicants'
 import { Notifications } from './pages/Notifications'
+import { EditCompany } from './pages/EditCompany'
+import { requestSignIn } from './lib/auth-intent'
 import { Loading } from './components/Loading'
 
 type Route =
@@ -27,6 +29,7 @@ type Route =
   | { name: 'employer' }
   | { name: 'register-company' }
   | { name: 'post-job'; companyId: string }
+  | { name: 'edit-company'; companyId: string }
   | { name: 'edit-job'; jobId: string }
   | { name: 'applicants'; jobId: string }
   | { name: 'notifications' }
@@ -45,6 +48,8 @@ function parseHash(): Route {
   if (h === '#/register-company') return { name: 'register-company' }
   m = h.match(/^#\/post-job\/([\w-]+)$/)
   if (m) return { name: 'post-job', companyId: m[1] }
+  m = h.match(/^#\/edit-company\/([\w-]+)$/)
+  if (m) return { name: 'edit-company', companyId: m[1] }
   m = h.match(/^#\/edit-job\/([\w-]+)$/)
   if (m) return { name: 'edit-job', jobId: m[1] }
   m = h.match(/^#\/applicants\/([\w-]+)$/)
@@ -64,6 +69,8 @@ export default function App() {
   const initRef = useRef(false)
   useEffect(() => {
     if (!user || initRef.current) return
+    const returnHash = sessionStorage.getItem('jobs.return')
+    if (returnHash) { sessionStorage.removeItem('jobs.return'); location.hash = returnHash; setRoute(parseHash()) }
     initRef.current = true
     ensureMigrated()
       .then(() => setDbReady(true))
@@ -104,8 +111,9 @@ export default function App() {
   }, [route, user, dbReady])
 
   if (loading) return <Loading />
-  if (!user) return <SignIn />
-  if (!dbReady) return <Loading />
+  const publicRoute = ['browse', 'job', 'company', 'companies'].includes(route.name)
+  if (!user && !publicRoute) return <SignIn />
+  if (user && !dbReady) return <Loading />
 
   const nav = (hash: string) => { location.hash = hash }
 
@@ -128,7 +136,9 @@ export default function App() {
           onOpenJob={(id) => nav(`#/job/${id}`)}
         />
       )
-    if (route.name === 'saved')
+    if (!user && !['browse', 'companies'].includes(route.name)) return <SignIn />
+    if (route.name === 'edit-company' && user) return <EditCompany user={user} companyId={route.companyId} onSaved={() => nav('#/employer')} />
+    if (route.name === 'saved' && user)
       return (
         <SavedJobs
           user={user}
@@ -143,7 +153,7 @@ export default function App() {
           onBack={() => nav('#/')}
         />
       )
-    if (route.name === 'applications')
+    if (route.name === 'applications' && user)
       return (
         <Applications
           user={user}
@@ -151,17 +161,18 @@ export default function App() {
           onBack={() => nav('#/')}
         />
       )
-    if (route.name === 'notifications')
+    if (route.name === 'notifications' && user)
       return (
         <Notifications
           user={user}
           onBack={() => nav('#/')}
         />
       )
-    if (route.name === 'employer')
+    if (route.name === 'employer' && user)
       return (
         <EmployerDashboard
           user={user}
+          onEditCompany={(id) => nav(`#/edit-company/${id}`)}
           onPostJob={(companyId) => nav(`#/post-job/${companyId}`)}
           onEditJob={(jobId) => nav(`#/edit-job/${jobId}`)}
           onViewApplicants={(jobId) => nav(`#/applicants/${jobId}`)}
@@ -169,7 +180,7 @@ export default function App() {
           onBack={() => nav('#/')}
         />
       )
-    if (route.name === 'register-company')
+    if (route.name === 'register-company' && user)
       return (
         <RegisterCompany
           user={user}
@@ -177,7 +188,7 @@ export default function App() {
           onBack={() => nav('#/employer')}
         />
       )
-    if (route.name === 'post-job')
+    if (route.name === 'post-job' && user)
       return (
         <PostJob
           user={user}
@@ -186,7 +197,7 @@ export default function App() {
           onBack={() => nav('#/employer')}
         />
       )
-    if (route.name === 'edit-job')
+    if (route.name === 'edit-job' && user)
       return (
         <EditJob
           user={user}
@@ -195,7 +206,7 @@ export default function App() {
           onBack={() => nav('#/employer')}
         />
       )
-    if (route.name === 'applicants')
+    if (route.name === 'applicants' && user)
       return (
         <Applicants
           user={user}
@@ -215,7 +226,7 @@ export default function App() {
 
   return (
     <>
-      <Nav user={user} savedCount={savedCount} applicationsCount={applicationsCount} unreadCount={unreadCount} />
+      {user ? <Nav user={user} savedCount={savedCount} applicationsCount={applicationsCount} unreadCount={unreadCount} /> : <nav className="flex justify-between p-4"><a href="#/">Jobs</a><a href="#/employer">Employers</a><button onClick={() => requestSignIn()}>Sign in</button></nav>}
       {content}
     </>
   )

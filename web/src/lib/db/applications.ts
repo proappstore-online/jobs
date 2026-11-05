@@ -7,6 +7,8 @@ export interface ApplicationRow {
   user_id: string
   job_id: string
   status: string
+  candidate_name: string | null
+  contact_email: string | null
   note: string | null
   applied_at: number
 }
@@ -14,6 +16,8 @@ export interface ApplicationRow {
 export interface ApplicationWithJob extends JobWithCompany {
   application_status: string
   applied_at: number
+  candidate_name: string | null
+  contact_email: string | null
   note: string | null
 }
 
@@ -23,11 +27,13 @@ export interface ApplicationWithJob extends JobWithCompany {
  * `:__user_id`. `apply_to_job` inserts the application and, atomically, a
  * notification for the job poster (only when the application is genuinely new).
  */
-export async function applyToJob(_userId: string, jobId: string, note?: string): Promise<boolean> {
+export async function applyToJob(_userId: string, jobId: string, note: string, candidateName: string, contactEmail: string): Promise<boolean> {
   await ensureMigrated()
   const results = await b('apply_to_job', {
     job_id: jobId,
-    note: note ?? null,
+    note,
+    candidate_name: candidateName,
+    contact_email: contactEmail,
     notification_id: rid(),
   })
   // results[0] is the application INSERT OR IGNORE; changes > 0 means a new
@@ -37,7 +43,8 @@ export async function applyToJob(_userId: string, jobId: string, note?: string):
 
 export async function withdrawApplication(_userId: string, jobId: string): Promise<void> {
   await ensureMigrated()
-  await x('withdraw_application', { job_id: jobId })
+  const result = await x('withdraw_application', { job_id: jobId })
+  if (!result.changes) throw new Error('Application was not withdrawn. Please refresh and retry.')
 }
 
 export async function listApplications(_userId: string): Promise<ApplicationWithJob[]> {

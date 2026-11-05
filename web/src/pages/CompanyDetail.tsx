@@ -1,3 +1,4 @@
+import { requestSignIn } from '../lib/auth-intent'
 import { useEffect, useState } from 'react'
 import { getCompanyBySlug, getCompanyJobs, isJobSaved, saveJob, unsaveJob } from '../lib/db'
 import type { CompanyRow, JobWithCompany } from '../lib/db'
@@ -6,7 +7,7 @@ import { Loading } from '../components/Loading'
 
 interface CompanyDetailProps {
   companySlug: string
-  user: { id: string }
+  user: { id: string } | null
   onBack: () => void
   onOpenJob: (id: string) => void
 }
@@ -15,6 +16,7 @@ export function CompanyDetail({ companySlug, user, onBack, onOpenJob }: CompanyD
   const [company, setCompany] = useState<CompanyRow | null>(null)
   const [jobs, setJobs] = useState<JobWithCompany[]>([])
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set())
+  const [error, setError] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export function CompanyDetail({ companySlug, user, onBack, onOpenJob }: CompanyD
         const companyJobs = await getCompanyJobs(c.id)
         if (cancelled) return
         setJobs(companyJobs)
-        const checks = await Promise.all(companyJobs.map((j) => isJobSaved(user.id, j.id)))
+        const checks = await Promise.all(companyJobs.map((j) => (user ? isJobSaved(user.id, j.id) : Promise.resolve(false))))
         const s = new Set<string>()
         companyJobs.forEach((j, i) => {
           if (checks[i]) s.add(j.id)
@@ -36,13 +38,14 @@ export function CompanyDetail({ companySlug, user, onBack, onOpenJob }: CompanyD
         setSavedSet(s)
       }
       setLoading(false)
-    })()
+    })().catch(() => { if (!cancelled) { setLoading(false); setError(true); } })
     return () => {
       cancelled = true
     }
-  }, [companySlug, user.id])
+  }, [companySlug, user?.id])
 
   async function handleToggleSave(jobId: string) {
+    if (!user) { requestSignIn(jobId, 'save'); return }
     const isSaved = savedSet.has(jobId)
     const newSet = new Set(savedSet)
     if (isSaved) {
@@ -56,6 +59,7 @@ export function CompanyDetail({ companySlug, user, onBack, onOpenJob }: CompanyD
     }
   }
 
+  if (error) return <p role="alert">Could not load company. Please refresh and retry.</p>
   if (loading) return <Loading />
 
   if (!company) {

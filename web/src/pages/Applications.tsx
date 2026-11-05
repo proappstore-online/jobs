@@ -29,6 +29,7 @@ function statusStyle(status: string) {
 
 export function Applications({ user, onOpenJob, onBack }: ApplicationsProps) {
   const [apps, setApps] = useState<ApplicationWithJob[] | null>(null)
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [confirmingWithdraw, setConfirmingWithdraw] = useState<string | null>(null)
 
@@ -61,14 +62,17 @@ export function Applications({ user, onOpenJob, onBack }: ApplicationsProps) {
   async function handleWithdrawConfirm(jobId: string) {
     clearTimeout(confirmTimer.current)
     setConfirmingWithdraw(null)
-    await withdrawApplication(user.id, jobId)
-    setApps((prev) => prev?.filter((a) => a.id !== jobId) ?? null)
+    try {
+      await withdrawApplication(user.id, jobId)
+      setApps((prev) => prev?.filter((a) => a.id !== jobId) ?? null)
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not withdraw application') }
   }
 
   if (loading) return <Loading />
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
+      {error && <p role="alert">{error}</p>}
       {/* Back */}
       <button
         onClick={onBack}

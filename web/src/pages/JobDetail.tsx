@@ -1,3 +1,4 @@
+import { requestSignIn } from '../lib/auth-intent'
 import { useEffect, useState } from 'react'
 import { getJob, isJobSaved, saveJob, unsaveJob, getCompanyJobs, applyToJob, getApplicationStatus } from '../lib/db'
 import type { JobWithCompany } from '../lib/db'
@@ -9,7 +10,7 @@ import { formatSalary, timeAgo, typeColor, locationTypeColor } from '../lib/cons
 
 interface JobDetailProps {
   jobId: string
-  user: { id: string }
+  user: { id: string } | null
   onBack: () => void
   onOpenCompany: (slug: string) => void
 }
@@ -42,6 +43,11 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
   const [loading, setLoading] = useState(true)
   const [applied, setApplied] = useState(false)
   const [applyMsg, setApplyMsg] = useState<string | null>(null)
+  const [showApply, setShowApply] = useState(false)
+  const [candidateName, setCandidateName] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [message, setMessage] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [shareMsg, setShareMsg] = useState<string | null>(null)
 
   useEffect(() => {
@@ -50,8 +56,8 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
     ;(async () => {
       const [j, isSaved, appStatus] = await Promise.all([
         getJob(jobId),
-        isJobSaved(user.id, jobId),
-        getApplicationStatus(user.id, jobId),
+        (user ? isJobSaved(user.id, jobId) : Promise.resolve(false)),
+        (user ? getApplicationStatus(user.id, jobId) : Promise.resolve(null)),
       ])
       if (cancelled) return
       setJob(j)
@@ -62,7 +68,7 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
         if (cancelled) return
         const others = related.filter((r) => r.id !== jobId).slice(0, 4)
         setRelatedJobs(others)
-        const checks = await Promise.all(others.map((r) => isJobSaved(user.id, r.id)))
+        const checks = await Promise.all(others.map((r) => (user ? isJobSaved(user.id, r.id) : Promise.resolve(false))))
         const s = new Set<string>()
         others.forEach((r, i) => {
           if (checks[i]) s.add(r.id)
@@ -70,13 +76,25 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
         setSavedRelated(s)
       }
       setLoading(false)
-    })()
+    })().catch(() => { if (!cancelled) { setLoading(false); setApplyMsg('Could not load job. Please retry.'); } })
     return () => {
       cancelled = true
     }
-  }, [jobId, user.id])
+  }, [jobId, user?.id])
+
+  useEffect(() => {
+    if (!user || !job) return
+    const raw = sessionStorage.getItem('jobs.intent')
+    if (!raw) return
+    const intent = JSON.parse(raw)
+    if (intent.jobId !== jobId) return
+    sessionStorage.removeItem('jobs.intent')
+    if (intent.action === 'apply') setShowApply(true)
+    if (intent.action === 'save') saveJob(user.id, jobId).then(() => setSaved(true)).catch(() => setApplyMsg('Could not save job. Please retry.'))
+  }, [user, job, jobId])
 
   async function handleToggleSave() {
+    if (!user) { requestSignIn(jobId, 'save'); return }
     if (saved) {
       setSaved(false)
       await unsaveJob(user.id, jobId)
@@ -87,6 +105,7 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
   }
 
   async function handleToggleRelatedSave(id: string) {
+    if (!user) { requestSignIn(id, 'save'); return }
     const isSaved = savedRelated.has(id)
     const newSet = new Set(savedRelated)
     if (isSaved) {
@@ -101,15 +120,21 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
   }
 
   async function handleApply() {
-    if (applied) return
-    if (job?.source_url) {
-      window.open(job.source_url, '_blank', 'noopener,noreferrer')
-      return
-    }
-    const isNew = await applyToJob(user.id, jobId)
-    setApplied(true)
-    setApplyMsg(isNew ? 'Application submitted!' : 'Already applied')
-    setTimeout(() => setApplyMsg(null), 3000)
+    if (!job || applied) return
+    if (job.source_url) { window.open(job.source_url, '_blank', 'noopener,noreferrer'); return }
+    if (!user) { requestSignIn(jobId, 'apply'); return }
+    setShowApply(true)
+  }
+  async function submitApplication(e: React.FormEvent) {
+    e.preventDefault()
+    if (!user || submitting) return
+    setSubmitting(true)
+    try {
+      const isNew = await applyToJob(user.id, jobId, message.trim(), candidateName.trim(), contactEmail.trim())
+      if (!isNew) throw new Error('Application not submitted. You may have already applied, own this listing, or the job may be closed. Refresh to check.')
+      setApplied(true); setShowApply(false); setApplyMsg('Application submitted!')
+    } catch (err) { setApplyMsg(err instanceof Error ? err.message : 'Application failed. Please retry.') }
+    finally { setSubmitting(false) }
   }
 
   async function handleShare() {
@@ -134,7 +159,7 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
         >
           &larr; All jobs
         </button>
-        <p className="mt-8 text-center text-sm text-[var(--muted)]">Job not found</p>
+        <p className="mt-8 text-center text-sm text-[var(--muted)]">{applyMsg || 'Job unavailable or closed'}</p>
       </div>
     )
   }
@@ -249,6 +274,15 @@ export function JobDetail({ jobId, user, onBack, onOpenCompany }: JobDetailProps
         <p className="mt-3 text-xs font-medium text-[var(--accent)]">{applyMsg}</p>
       )}
 
+      {showApply && <form onSubmit={submitApplication} className="mt-5 space-y-3 rounded-xl border p-4">
+        <h2>Apply to {job.company_name}</h2>
+        <p>Your name, email and message are private to you and this employer.</p>
+        <label className="block">Name<input className="block border p-2" required maxLength={120} value={candidateName} onChange={e => setCandidateName(e.target.value)} /></label>
+        <label className="block">Contact email<input className="block border p-2" type="email" required maxLength={254} value={contactEmail} onChange={e => setContactEmail(e.target.value)} /></label>
+        <label className="block">Message<textarea className="block w-full border p-2" required maxLength={5000} value={message} onChange={e => setMessage(e.target.value)} /></label>
+        <button aria-label="Submit application" disabled={submitting} type="submit">{submitting ? 'Submitting...' : 'Submit application'}</button>
+        <button type="button" onClick={() => setShowApply(false)}>Cancel</button>
+      </form>}
       {/* Description */}
       <div
         className="job-description mt-8 text-sm leading-relaxed text-[var(--ink)]"

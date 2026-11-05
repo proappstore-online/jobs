@@ -112,6 +112,7 @@ const MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read, created_at DESC);
     `,
   },
+  { name: '0005_application_contact', sql: 'ALTER TABLE applications ADD COLUMN candidate_name TEXT; ALTER TABLE applications ADD COLUMN contact_email TEXT;' },
 ]
 
 let migrated = false

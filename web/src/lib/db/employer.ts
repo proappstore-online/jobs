@@ -1,4 +1,4 @@
-import { q, x } from '../actions'
+import { q, changed as x } from '../actions'
 import { ensureMigrated, rid } from './core'
 import type { CompanyRow } from './companies'
 
@@ -11,8 +11,8 @@ export interface PostJobData {
   description: string
   location?: string
   location_type?: string
-  salary_min?: number
-  salary_max?: number
+  salary_min?: number | null
+  salary_max?: number | null
   salary_currency?: string
   employment_type?: string
   category: string
@@ -24,8 +24,8 @@ export interface UpdateJobData {
   description?: string
   location?: string
   location_type?: string
-  salary_min?: number
-  salary_max?: number
+  salary_min?: number | null
+  salary_max?: number | null
   salary_currency?: string
   employment_type?: string
   category?: string
@@ -47,6 +47,8 @@ interface MyJobRow {
 interface ApplicantRow {
   user_id: string
   status: string
+  candidate_name: string | null
+  contact_email: string | null
   note: string | null
   applied_at: number
 }
@@ -108,16 +110,7 @@ export async function updateCompany(
   data: Partial<{ name: string; description: string; website: string; location: string; industry: string; size: string }>,
 ): Promise<void> {
   await ensureMigrated()
-  if (data.name === undefined) return // name is required by the action
-  await x('update_company', {
-    company_id: companyId,
-    name: data.name,
-    description: data.description ?? null,
-    website: data.website ?? null,
-    location: data.location ?? null,
-    industry: data.industry ?? null,
-    size: data.size ?? null,
-  })
+  await x('update_company', { company_id: companyId, ...updateParams(data) })
 }
 
 export async function getMyCompanies(_userId: string): Promise<CompanyRow[]> {
@@ -144,6 +137,7 @@ export async function postJob(userId: string, companyId: string, data: PostJobDa
     throw new Error('Not the company owner')
   }
 
+  validateJob(data)
   const id = rid()
   const slug = `${slugify(data.title)}-${rid().slice(0, 6)}`
 
@@ -168,21 +162,8 @@ export async function postJob(userId: string, companyId: string, data: PostJobDa
 
 export async function updateJob(_userId: string, jobId: string, data: UpdateJobData): Promise<void> {
   await ensureMigrated()
-  // Unset fields stay null and are preserved by COALESCE in the action SQL.
-  await x('update_job', {
-    job_id: jobId,
-    title: data.title ?? null,
-    description: data.description ?? null,
-    location: data.location ?? null,
-    location_type: data.location_type ?? null,
-    salary_min: data.salary_min ?? null,
-    salary_max: data.salary_max ?? null,
-    salary_currency: data.salary_currency ?? null,
-    employment_type: data.employment_type ?? null,
-    category: data.category ?? null,
-    experience_level: data.experience_level ?? null,
-    status: data.status ?? null,
-  })
+  validateJob(data)
+  await x('update_job', { job_id: jobId, ...updateParams(data) })
 }
 
 export async function closeJob(_userId: string, jobId: string): Promise<void> {
@@ -213,7 +194,7 @@ export async function updateApplicantStatus(
   applicantUserId: string,
   status: string,
 ): Promise<void> {
-  if (!VALID_STATUSES.has(status)) return
+  if (!VALID_STATUSES.has(status)) throw new Error('Invalid application status')
   await ensureMigrated()
   // Ownership guard is in the action SQL (only the job poster can update).
   await x('update_applicant_status', {
@@ -221,4 +202,21 @@ export async function updateApplicantStatus(
     applicant_user_id: applicantUserId,
     status,
   })
+}
+
+function updateParams(data: object): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined).flatMap(([key, value]) => [[key, value], ['set_' + key, 1]]))
+}
+function validateJob(data: UpdateJobData) {
+  for (const field of ['title', 'description', 'category'] as const) {
+    if (data[field] !== undefined && !data[field]?.trim()) throw new Error('Title, description and category are required.')
+  }
+  for (const value of [data.salary_min, data.salary_max]) {
+    if (value != null && (!Number.isInteger(value) || value < 0)) throw new Error('Salary must be a non-negative whole number.')
+  }
+  if (data.salary_min != null && data.salary_max != null && data.salary_min > data.salary_max) throw new Error('Minimum salary must not exceed maximum salary.')
+}
+export async function getMyJob(jobId: string) {
+  const rows = await q<import('./jobs').JobWithCompany>('get_my_job', { job_id: jobId })
+  return rows[0] ?? null
 }

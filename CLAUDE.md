@@ -15,7 +15,7 @@ For platform conventions, read https://proappstore.online/skills.md and https://
 
 ## Architecture
 
-- **D1 database** — 4 migrations (companies, jobs, saved_jobs, applications, recent_views, notifications)
+- **D1 database** — 5 migrations (companies, jobs, saved_jobs, applications, recent_views, notifications)
 - **Schema** — deploy applies `migrations.json`; keep `web/src/lib/db/core.ts` aligned for the lazy `ensureMigrated()` fallback
 - **Hash routing** — all routes below
 - **HTML sanitization** — `lib/sanitize.ts` strips unsafe tags from job descriptions
@@ -36,6 +36,7 @@ For platform conventions, read https://proappstore.online/skills.md and https://
 - `#/employer` — dashboard (companies, posted jobs, applicant counts)
 - `#/register-company` — register a new company
 - `#/post-job/:companyId` — post a job
+- `#/edit-company/:companyId` - edit an owned company
 - `#/edit-job/:jobId` — edit/close a job
 - `#/applicants/:jobId` — view + manage applicant statuses
 
@@ -53,5 +54,5 @@ For platform conventions, read https://proappstore.online/skills.md and https://
 ## Data flow
 
 - MVP jobs are posted by employers via the UI (`source = 'employer'`); scraper ingestion is deferred.
-- Current DB actions require auth; public discovery is tracked in #5. The SDK uses platform-cookie authentication.
+- Discovery uses bounded public query actions and SDK callPublic. Personal actions use platform-cookie authentication.
 - Employer write operations verify ownership (`posted_by` / `owner_user_id`)

@@ -4,59 +4,104 @@
       "name": "list_jobs",
       "description": "Search active job listings with optional filters (search text, location, category, employment type, location type)",
       "operation": "query",
-      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.status = 'active' AND (:search IS NULL OR j.title LIKE :search_like OR j.description LIKE :search_like OR c.name LIKE :search_like) AND (:location IS NULL OR j.location LIKE :location_like) AND (:category IS NULL OR j.category = :category) AND (:employment_type IS NULL OR j.employment_type = :employment_type) AND (:location_type IS NULL OR j.location_type = :location_type) ORDER BY j.posted_at DESC LIMIT :limit OFFSET :offset",
+      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.status = 'active' AND (:search IS NULL OR j.title LIKE :search_like OR j.description LIKE :search_like OR c.name LIKE :search_like) AND (:location IS NULL OR j.location LIKE :location_like) AND (:category IS NULL OR j.category = :category) AND (:employment_type IS NULL OR j.employment_type = :employment_type) AND (:location_type IS NULL OR j.location_type = :location_type) ORDER BY j.posted_at DESC LIMIT 20 OFFSET :offset",
       "params": {
-        "search": { "type": "string", "optional": true },
-        "search_like": { "type": "string", "optional": true },
-        "location": { "type": "string", "optional": true },
-        "location_like": { "type": "string", "optional": true },
-        "category": { "type": "string", "optional": true },
-        "employment_type": { "type": "string", "optional": true },
-        "location_type": { "type": "string", "optional": true },
-        "limit": { "type": "integer", "optional": true, "default": 20, "max": 100 },
-        "offset": { "type": "integer", "optional": true, "default": 0 }
+        "search": {
+          "type": "string",
+          "optional": true
+        },
+        "search_like": {
+          "type": "string",
+          "optional": true
+        },
+        "location": {
+          "type": "string",
+          "optional": true
+        },
+        "location_like": {
+          "type": "string",
+          "optional": true
+        },
+        "category": {
+          "type": "string",
+          "optional": true
+        },
+        "employment_type": {
+          "type": "string",
+          "optional": true
+        },
+        "location_type": {
+          "type": "string",
+          "optional": true
+        },
+        "offset": {
+          "type": "integer",
+          "optional": true,
+          "default": 0
+        }
       },
-      "requires_auth": true,
-      "auth": { "caller_unscoped": { "reason": "public job board: job listing fields + company name/slug/logo/location only; posted_by (poster user id) is not selected" } }
+      "requires_auth": false
     },
     {
       "name": "count_jobs",
       "description": "Count active job listings matching the same filters as list_jobs",
       "operation": "query",
-      "sql": "SELECT COUNT(*) AS cnt FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.status = 'active' AND (:search IS NULL OR j.title LIKE :search_like OR j.description LIKE :search_like OR c.name LIKE :search_like) AND (:location IS NULL OR j.location LIKE :location_like) AND (:category IS NULL OR j.category = :category) AND (:employment_type IS NULL OR j.employment_type = :employment_type) AND (:location_type IS NULL OR j.location_type = :location_type)",
+      "sql": "SELECT COUNT(*) AS cnt FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.status = 'active' AND (:search IS NULL OR j.title LIKE :search_like OR j.description LIKE :search_like OR c.name LIKE :search_like) AND (:location IS NULL OR j.location LIKE :location_like) AND (:category IS NULL OR j.category = :category) AND (:employment_type IS NULL OR j.employment_type = :employment_type) AND (:location_type IS NULL OR j.location_type = :location_type) LIMIT 1",
       "params": {
-        "search": { "type": "string", "optional": true },
-        "search_like": { "type": "string", "optional": true },
-        "location": { "type": "string", "optional": true },
-        "location_like": { "type": "string", "optional": true },
-        "category": { "type": "string", "optional": true },
-        "employment_type": { "type": "string", "optional": true },
-        "location_type": { "type": "string", "optional": true }
+        "search": {
+          "type": "string",
+          "optional": true
+        },
+        "search_like": {
+          "type": "string",
+          "optional": true
+        },
+        "location": {
+          "type": "string",
+          "optional": true
+        },
+        "location_like": {
+          "type": "string",
+          "optional": true
+        },
+        "category": {
+          "type": "string",
+          "optional": true
+        },
+        "employment_type": {
+          "type": "string",
+          "optional": true
+        },
+        "location_type": {
+          "type": "string",
+          "optional": true
+        }
       },
-      "requires_auth": true,
-      "auth": { "caller_unscoped": { "reason": "public job board aggregate: count of active listings matching the filters" } }
+      "requires_auth": false
     },
     {
       "name": "get_job",
       "description": "Get full details of a specific job by id, with company info",
       "operation": "query",
-      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.id = :job_id",
+      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.id = :job_id AND j.status = 'active' LIMIT 1",
       "params": {
-        "job_id": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        }
       },
-      "requires_auth": true,
-      "auth": { "caller_unscoped": { "reason": "public job board: job listing fields + company name/slug/logo/location only; posted_by (poster user id) is not selected" } }
+      "requires_auth": false
     },
     {
       "name": "get_job_by_slug",
       "description": "Get full details of an active job by slug, with company info",
       "operation": "query",
-      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.slug = :slug AND j.status = 'active'",
+      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.slug = :slug AND j.status = 'active' LIMIT 1",
       "params": {
-        "slug": { "type": "string" }
+        "slug": {
+          "type": "string"
+        }
       },
-      "requires_auth": true,
-      "auth": { "caller_unscoped": { "reason": "public job board: job listing fields + company name/slug/logo/location only; posted_by (poster user id) is not selected" } }
+      "requires_auth": false
     },
     {
       "name": "search_jobs",
@@ -64,57 +109,69 @@
       "operation": "query",
       "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.status = 'active' AND (j.title LIKE :term OR j.description LIKE :term OR c.name LIKE :term) ORDER BY j.posted_at DESC LIMIT 50",
       "params": {
-        "term": { "type": "string" }
+        "term": {
+          "type": "string"
+        }
       },
-      "requires_auth": true,
-      "auth": { "caller_unscoped": { "reason": "public job board: job listing fields + company name/slug/logo/location only; posted_by (poster user id) is not selected" } }
+      "requires_auth": false
     },
     {
       "name": "list_companies",
       "description": "List companies with optional search by name or industry, ordered by name",
       "operation": "query",
-      "sql": "SELECT id, name, slug, logo_url, description, website, location, industry, size, created_at FROM companies WHERE (:search IS NULL OR name LIKE :search_like OR industry LIKE :search_like) ORDER BY name ASC LIMIT :limit OFFSET :offset",
+      "sql": "SELECT id, name, slug, logo_url, description, website, location, industry, size, created_at FROM companies WHERE (:search IS NULL OR name LIKE :search_like OR industry LIKE :search_like) ORDER BY name ASC LIMIT 20 OFFSET :offset",
       "params": {
-        "search": { "type": "string", "optional": true },
-        "search_like": { "type": "string", "optional": true },
-        "limit": { "type": "integer", "optional": true, "default": 20, "max": 100 },
-        "offset": { "type": "integer", "optional": true, "default": 0 }
+        "search": {
+          "type": "string",
+          "optional": true
+        },
+        "search_like": {
+          "type": "string",
+          "optional": true
+        },
+        "offset": {
+          "type": "integer",
+          "optional": true,
+          "default": 0
+        }
       },
-      "requires_auth": true,
-      "auth": { "caller_unscoped": { "reason": "public company directory: company profile fields only; owner_user_id is not selected" } }
+      "requires_auth": false
     },
     {
       "name": "get_company",
       "description": "Get a company profile by id",
       "operation": "query",
-      "sql": "SELECT id, name, slug, logo_url, description, website, location, industry, size, created_at FROM companies WHERE id = :company_id",
+      "sql": "SELECT id, name, slug, logo_url, description, website, location, industry, size, created_at FROM companies WHERE id = :company_id LIMIT 1",
       "params": {
-        "company_id": { "type": "string" }
+        "company_id": {
+          "type": "string"
+        }
       },
-      "requires_auth": true,
-      "auth": { "caller_unscoped": { "reason": "public company directory: company profile fields only; owner_user_id is not selected" } }
+      "requires_auth": false
     },
     {
       "name": "get_company_by_slug",
       "description": "Get a company profile by slug",
       "operation": "query",
-      "sql": "SELECT id, name, slug, logo_url, description, website, location, industry, size, created_at FROM companies WHERE slug = :slug",
+      "sql": "SELECT id, name, slug, logo_url, description, website, location, industry, size, created_at FROM companies WHERE slug = :slug LIMIT 1",
       "params": {
-        "slug": { "type": "string" }
+        "slug": {
+          "type": "string"
+        }
       },
-      "requires_auth": true,
-      "auth": { "caller_unscoped": { "reason": "public company directory: company profile fields only; owner_user_id is not selected" } }
+      "requires_auth": false
     },
     {
       "name": "company_jobs",
       "description": "List active jobs at a specific company by company id",
       "operation": "query",
-      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.company_id = :company_id AND j.status = 'active' ORDER BY j.posted_at DESC",
+      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.company_id = :company_id AND j.status = 'active' ORDER BY j.posted_at DESC LIMIT 100",
       "params": {
-        "company_id": { "type": "string" }
+        "company_id": {
+          "type": "string"
+        }
       },
-      "requires_auth": true,
-      "auth": { "caller_unscoped": { "reason": "public job board: job listing fields + company name/slug/logo/location only; posted_by (poster user id) is not selected" } }
+      "requires_auth": false
     },
     {
       "name": "save_job",
@@ -122,7 +179,9 @@
       "operation": "execute",
       "sql": "INSERT OR IGNORE INTO saved_jobs (id, user_id, job_id, saved_at) VALUES (:__uuid, :__user_id, :job_id, :__now)",
       "params": {
-        "job_id": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -132,7 +191,9 @@
       "operation": "execute",
       "sql": "DELETE FROM saved_jobs WHERE user_id = :__user_id AND job_id = :job_id",
       "params": {
-        "job_id": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -150,7 +211,9 @@
       "operation": "query",
       "sql": "SELECT COUNT(*) AS cnt FROM saved_jobs WHERE user_id = :__user_id AND job_id = :job_id",
       "params": {
-        "job_id": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -159,13 +222,26 @@
       "description": "Apply to a job as the caller and notify the job poster (atomic). The notification only inserts for jobs with a poster and only when this is a new application.",
       "operation": "batch",
       "statements": [
-        "INSERT OR IGNORE INTO applications (id, user_id, job_id, status, note, applied_at) VALUES (:__uuid, :__user_id, :job_id, 'applied', :note, :__now)",
-        "INSERT INTO notifications (id, user_id, type, title, body, link, created_at) SELECT :notification_id, j.posted_by, 'new_application', 'New application', 'Someone applied to \"' || j.title || '\"', '#/applicants/' || :job_id, :__now FROM jobs j WHERE j.id = :job_id AND j.posted_by IS NOT NULL AND EXISTS (SELECT 1 FROM applications a WHERE a.user_id = :__user_id AND a.job_id = :job_id AND a.applied_at = :__now)"
+        "INSERT OR IGNORE INTO applications (id, user_id, job_id, status, note, candidate_name, contact_email, applied_at) SELECT :__uuid, :__user_id, :job_id, 'applied', :note, trim(:candidate_name), trim(:contact_email), :__now WHERE length(trim(:candidate_name)) BETWEEN 1 AND 120 AND length(:contact_email) <= 254 AND trim(:contact_email) LIKE '%_@_%._%' AND length(trim(:note)) BETWEEN 1 AND 5000 AND EXISTS (SELECT 1 FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.id = :job_id AND j.status = 'active' AND j.source_url IS NULL AND j.posted_by IS NOT NULL AND j.posted_by != :__user_id AND COALESCE(c.owner_user_id, '') != :__user_id)",
+        "INSERT INTO notifications (id, user_id, type, title, body, link, created_at) SELECT :notification_id, j.posted_by, 'new_application', 'New application', 'Someone applied to \"' || j.title || '\"', '#/applicants/' || :job_id, :__now FROM jobs j WHERE j.id = :job_id AND j.posted_by IS NOT NULL AND changes() = 1 AND EXISTS (SELECT 1 FROM applications a WHERE a.id = :__uuid AND a.user_id = :__user_id AND a.job_id = :job_id)"
       ],
       "params": {
-        "job_id": { "type": "string" },
-        "note": { "type": "string", "optional": true },
-        "notification_id": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string",
+          "optional": true
+        },
+        "notification_id": {
+          "type": "string"
+        },
+        "candidate_name": {
+          "type": "string"
+        },
+        "contact_email": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -175,7 +251,9 @@
       "operation": "execute",
       "sql": "DELETE FROM applications WHERE user_id = :__user_id AND job_id = :job_id",
       "params": {
-        "job_id": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -183,7 +261,7 @@
       "name": "list_applications",
       "description": "List the caller's job applications with job and company info, newest first",
       "operation": "query",
-      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location, a.status AS application_status, a.applied_at, a.note FROM applications a JOIN jobs j ON j.id = a.job_id JOIN companies c ON c.id = j.company_id WHERE a.user_id = :__user_id ORDER BY a.applied_at DESC",
+      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location, a.status AS application_status, a.applied_at, a.note, a.candidate_name, a.contact_email FROM applications a JOIN jobs j ON j.id = a.job_id JOIN companies c ON c.id = j.company_id WHERE a.user_id = :__user_id ORDER BY a.applied_at DESC",
       "params": {},
       "requires_auth": true
     },
@@ -191,9 +269,11 @@
       "name": "get_application_status",
       "description": "Get the caller's application status for a specific job",
       "operation": "query",
-      "sql": "SELECT status, applied_at, note FROM applications WHERE user_id = :__user_id AND job_id = :job_id",
+      "sql": "SELECT status, applied_at, note, candidate_name, contact_email FROM applications WHERE user_id = :__user_id AND job_id = :job_id",
       "params": {
-        "job_id": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -203,8 +283,12 @@
       "operation": "execute",
       "sql": "UPDATE applications SET note = :note WHERE user_id = :__user_id AND job_id = :job_id",
       "params": {
-        "job_id": { "type": "string" },
-        "note": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -214,7 +298,9 @@
       "operation": "execute",
       "sql": "INSERT OR REPLACE INTO recent_views (id, user_id, job_id, viewed_at) VALUES (:__uuid, :__user_id, :job_id, :__now)",
       "params": {
-        "job_id": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -224,7 +310,12 @@
       "operation": "query",
       "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM recent_views v JOIN jobs j ON j.id = v.job_id JOIN companies c ON c.id = j.company_id WHERE v.user_id = :__user_id ORDER BY v.viewed_at DESC LIMIT :limit",
       "params": {
-        "limit": { "type": "integer", "optional": true, "default": 10, "max": 100 }
+        "limit": {
+          "type": "integer",
+          "optional": true,
+          "default": 10,
+          "max": 100
+        }
       },
       "requires_auth": true
     },
@@ -240,32 +331,97 @@
       "name": "register_company",
       "description": "Register a new company owned by the caller",
       "operation": "execute",
-      "sql": "INSERT INTO companies (id, name, slug, logo_url, description, website, location, industry, size, owner_user_id, created_at) VALUES (:id, :name, :slug, NULL, :description, :website, :location, :industry, :size, :__user_id, :__now)",
+      "sql": "INSERT INTO companies (id, name, slug, logo_url, description, website, location, industry, size, owner_user_id, created_at) SELECT :id, :name, :slug, NULL, :description, :website, :location, :industry, :size, :__user_id, :__now WHERE length(trim(:name)) > 0",
       "params": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "slug": { "type": "string" },
-        "description": { "type": "string", "optional": true },
-        "website": { "type": "string", "optional": true },
-        "location": { "type": "string", "optional": true },
-        "industry": { "type": "string", "optional": true },
-        "size": { "type": "string", "optional": true }
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "optional": true
+        },
+        "website": {
+          "type": "string",
+          "optional": true
+        },
+        "location": {
+          "type": "string",
+          "optional": true
+        },
+        "industry": {
+          "type": "string",
+          "optional": true
+        },
+        "size": {
+          "type": "string",
+          "optional": true
+        }
       },
       "requires_auth": true
     },
     {
       "name": "update_company",
-      "description": "Update a company the caller owns (all mutable profile fields)",
+      "description": "Update an owned company. Each set_FIELD flag applies that field; omitted flags preserve values. Optional text may be cleared with an empty string.",
       "operation": "execute",
-      "sql": "UPDATE companies SET name = :name, description = :description, website = :website, location = :location, industry = :industry, size = :size WHERE id = :company_id AND owner_user_id = :__user_id",
+      "sql": "UPDATE companies SET name = CASE WHEN :set_name = 1 THEN :name ELSE name END, description = CASE WHEN :set_description = 1 THEN :description ELSE description END, website = CASE WHEN :set_website = 1 THEN :website ELSE website END, location = CASE WHEN :set_location = 1 THEN :location ELSE location END, industry = CASE WHEN :set_industry = 1 THEN :industry ELSE industry END, size = CASE WHEN :set_size = 1 THEN :size ELSE size END WHERE id = :company_id AND owner_user_id = :__user_id AND (:set_name IS NULL OR :set_name = 0 OR length(trim(:name)) > 0)",
       "params": {
-        "company_id": { "type": "string" },
-        "name": { "type": "string" },
-        "description": { "type": "string", "optional": true },
-        "website": { "type": "string", "optional": true },
-        "location": { "type": "string", "optional": true },
-        "industry": { "type": "string", "optional": true },
-        "size": { "type": "string", "optional": true }
+        "company_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "optional": true
+        },
+        "description": {
+          "type": "string",
+          "optional": true
+        },
+        "website": {
+          "type": "string",
+          "optional": true
+        },
+        "location": {
+          "type": "string",
+          "optional": true
+        },
+        "industry": {
+          "type": "string",
+          "optional": true
+        },
+        "size": {
+          "type": "string",
+          "optional": true
+        },
+        "set_name": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_description": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_website": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_location": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_industry": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_size": {
+          "type": "integer",
+          "optional": true
+        }
       },
       "requires_auth": true
     },
@@ -283,7 +439,9 @@
       "operation": "query",
       "sql": "SELECT COUNT(*) AS cnt FROM companies WHERE id = :company_id AND owner_user_id = :__user_id",
       "params": {
-        "company_id": { "type": "string" }
+        "company_id": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -291,42 +449,150 @@
       "name": "post_job",
       "description": "Post a job under a company the caller owns. The ownership check is in the SQL: the row only inserts when the caller owns the target company.",
       "operation": "execute",
-      "sql": "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, status, posted_by, created_at) SELECT :id, :company_id, :title, :slug, :description, :location, :location_type, :salary_min, :salary_max, :salary_currency, :employment_type, :category, :experience_level, :__now, 'employer', 'active', :__user_id, :__now WHERE EXISTS (SELECT 1 FROM companies c WHERE c.id = :company_id AND c.owner_user_id = :__user_id)",
+      "sql": "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, status, posted_by, created_at) SELECT :id, :company_id, :title, :slug, :description, :location, :location_type, :salary_min, :salary_max, :salary_currency, :employment_type, :category, :experience_level, :__now, 'employer', 'active', :__user_id, :__now WHERE EXISTS (SELECT 1 FROM companies c WHERE c.id = :company_id AND c.owner_user_id = :__user_id) AND length(trim(:title)) > 0 AND length(trim(:description)) > 0 AND length(trim(:category)) > 0 AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max)",
       "params": {
-        "id": { "type": "string" },
-        "company_id": { "type": "string" },
-        "title": { "type": "string" },
-        "slug": { "type": "string" },
-        "description": { "type": "string" },
-        "location": { "type": "string", "optional": true },
-        "location_type": { "type": "string" },
-        "salary_min": { "type": "integer", "optional": true },
-        "salary_max": { "type": "integer", "optional": true },
-        "salary_currency": { "type": "string" },
-        "employment_type": { "type": "string" },
-        "category": { "type": "string" },
-        "experience_level": { "type": "string" }
+        "id": {
+          "type": "string"
+        },
+        "company_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string",
+          "optional": true
+        },
+        "location_type": {
+          "type": "string"
+        },
+        "salary_min": {
+          "type": "integer",
+          "optional": true
+        },
+        "salary_max": {
+          "type": "integer",
+          "optional": true
+        },
+        "salary_currency": {
+          "type": "string"
+        },
+        "employment_type": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "experience_level": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
     {
       "name": "update_job",
-      "description": "Update a job the caller posted (guarded by posted_by = caller). Pass every editable field; unchanged fields keep their prior value via COALESCE.",
+      "description": "Update an owned job. Each set_FIELD flag applies that field; omitted flags preserve values and nullable salary fields can be explicitly cleared.",
       "operation": "execute",
-      "sql": "UPDATE jobs SET title = COALESCE(:title, title), description = COALESCE(:description, description), location = COALESCE(:location, location), location_type = COALESCE(:location_type, location_type), salary_min = COALESCE(:salary_min, salary_min), salary_max = COALESCE(:salary_max, salary_max), salary_currency = COALESCE(:salary_currency, salary_currency), employment_type = COALESCE(:employment_type, employment_type), category = COALESCE(:category, category), experience_level = COALESCE(:experience_level, experience_level), status = COALESCE(:status, status) WHERE id = :job_id AND posted_by = :__user_id",
+      "sql": "UPDATE jobs SET title = CASE WHEN :set_title = 1 THEN :title ELSE title END, description = CASE WHEN :set_description = 1 THEN :description ELSE description END, location = CASE WHEN :set_location = 1 THEN :location ELSE location END, location_type = CASE WHEN :set_location_type = 1 THEN :location_type ELSE location_type END, salary_min = CASE WHEN :set_salary_min = 1 THEN :salary_min ELSE salary_min END, salary_max = CASE WHEN :set_salary_max = 1 THEN :salary_max ELSE salary_max END, salary_currency = CASE WHEN :set_salary_currency = 1 THEN :salary_currency ELSE salary_currency END, employment_type = CASE WHEN :set_employment_type = 1 THEN :employment_type ELSE employment_type END, category = CASE WHEN :set_category = 1 THEN :category ELSE category END, experience_level = CASE WHEN :set_experience_level = 1 THEN :experience_level ELSE experience_level END, status = CASE WHEN :set_status = 1 THEN :status ELSE status END WHERE id = :job_id AND posted_by = :__user_id AND (:set_title IS NULL OR :set_title = 0 OR length(trim(:title)) > 0) AND (:set_description IS NULL OR :set_description = 0 OR length(trim(:description)) > 0) AND (:set_category IS NULL OR :set_category = 0 OR length(trim(:category)) > 0) AND (:set_status IS NULL OR :set_status = 0 OR :status IN ('active','closed')) AND ((CASE WHEN :set_salary_min = 1 THEN :salary_min ELSE salary_min END) IS NULL OR (CASE WHEN :set_salary_min = 1 THEN :salary_min ELSE salary_min END) >= 0) AND ((CASE WHEN :set_salary_max = 1 THEN :salary_max ELSE salary_max END) IS NULL OR (CASE WHEN :set_salary_max = 1 THEN :salary_max ELSE salary_max END) >= 0) AND ((CASE WHEN :set_salary_min = 1 THEN :salary_min ELSE salary_min END) IS NULL OR (CASE WHEN :set_salary_max = 1 THEN :salary_max ELSE salary_max END) IS NULL OR (CASE WHEN :set_salary_min = 1 THEN :salary_min ELSE salary_min END) <= (CASE WHEN :set_salary_max = 1 THEN :salary_max ELSE salary_max END))",
       "params": {
-        "job_id": { "type": "string" },
-        "title": { "type": "string", "optional": true },
-        "description": { "type": "string", "optional": true },
-        "location": { "type": "string", "optional": true },
-        "location_type": { "type": "string", "optional": true },
-        "salary_min": { "type": "integer", "optional": true },
-        "salary_max": { "type": "integer", "optional": true },
-        "salary_currency": { "type": "string", "optional": true },
-        "employment_type": { "type": "string", "optional": true },
-        "category": { "type": "string", "optional": true },
-        "experience_level": { "type": "string", "optional": true },
-        "status": { "type": "string", "optional": true }
+        "job_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "optional": true
+        },
+        "description": {
+          "type": "string",
+          "optional": true
+        },
+        "location": {
+          "type": "string",
+          "optional": true
+        },
+        "location_type": {
+          "type": "string",
+          "optional": true
+        },
+        "salary_min": {
+          "type": "integer",
+          "optional": true
+        },
+        "salary_max": {
+          "type": "integer",
+          "optional": true
+        },
+        "salary_currency": {
+          "type": "string",
+          "optional": true
+        },
+        "employment_type": {
+          "type": "string",
+          "optional": true
+        },
+        "category": {
+          "type": "string",
+          "optional": true
+        },
+        "experience_level": {
+          "type": "string",
+          "optional": true
+        },
+        "status": {
+          "type": "string",
+          "optional": true
+        },
+        "set_title": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_description": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_location": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_location_type": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_salary_min": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_salary_max": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_salary_currency": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_employment_type": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_category": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_experience_level": {
+          "type": "integer",
+          "optional": true
+        },
+        "set_status": {
+          "type": "integer",
+          "optional": true
+        }
       },
       "requires_auth": true
     },
@@ -334,9 +600,11 @@
       "name": "close_job",
       "description": "Close a job the caller posted (guarded by posted_by = caller)",
       "operation": "execute",
-      "sql": "UPDATE jobs SET status = 'closed' WHERE id = :job_id AND posted_by = :__user_id",
+      "sql": "UPDATE jobs SET status = 'closed' WHERE id = :job_id AND posted_by = :__user_id AND status = 'active'",
       "params": {
-        "job_id": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -352,9 +620,11 @@
       "name": "get_job_applicants",
       "description": "List applicants for a job the caller posted. The ownership guard is in the WHERE clause: rows only return when the caller posted the job.",
       "operation": "query",
-      "sql": "SELECT a.user_id, a.status, a.note, a.applied_at FROM applications a WHERE a.job_id = :job_id AND EXISTS (SELECT 1 FROM jobs j WHERE j.id = :job_id AND j.posted_by = :__user_id) ORDER BY a.applied_at DESC",
+      "sql": "SELECT a.user_id, a.status, a.note, a.candidate_name, a.contact_email, a.applied_at FROM applications a WHERE a.job_id = :job_id AND EXISTS (SELECT 1 FROM jobs j WHERE j.id = :job_id AND j.posted_by = :__user_id) ORDER BY a.applied_at DESC",
       "params": {
-        "job_id": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -362,11 +632,17 @@
       "name": "update_applicant_status",
       "description": "Set an applicant's status on a job the caller posted. Guarded: only the job poster can update, derived from the job row.",
       "operation": "execute",
-      "sql": "UPDATE applications SET status = :status WHERE job_id = :job_id AND user_id = :applicant_user_id AND EXISTS (SELECT 1 FROM jobs j WHERE j.id = :job_id AND j.posted_by = :__user_id)",
+      "sql": "UPDATE applications SET status = :status WHERE job_id = :job_id AND user_id = :applicant_user_id AND EXISTS (SELECT 1 FROM jobs j WHERE j.id = :job_id AND j.posted_by = :__user_id) AND :status IN ('applied', 'interview', 'offer', 'rejected')",
       "params": {
-        "job_id": { "type": "string" },
-        "applicant_user_id": { "type": "string" },
-        "status": { "type": "string" }
+        "job_id": {
+          "type": "string"
+        },
+        "applicant_user_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -384,7 +660,9 @@
       "operation": "execute",
       "sql": "UPDATE notifications SET read = 1 WHERE id = :notification_id AND user_id = :__user_id",
       "params": {
-        "notification_id": { "type": "string" }
+        "notification_id": {
+          "type": "string"
+        }
       },
       "requires_auth": true
     },
@@ -525,6 +803,18 @@
           "reason": "App owners and appointed moderators inspect marketplace listings across employers."
         }
       }
+    },
+    {
+      "name": "get_my_job",
+      "description": "Read one job for its actual poster, including closed listings.",
+      "operation": "query",
+      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.id = :job_id AND j.posted_by = :__user_id LIMIT 1",
+      "params": {
+        "job_id": {
+          "type": "string"
+        }
+      },
+      "requires_auth": true
     }
   ],
   "operator_view": {

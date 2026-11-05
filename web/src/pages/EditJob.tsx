@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getJob, updateJob, closeJob } from '../lib/db'
+import { getMyJob, updateJob, closeJob } from '../lib/db'
 import {
   CATEGORIES,
   EMPLOYMENT_TYPES,
@@ -37,7 +37,7 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const job = await getJob(jobId)
+      const job = await getMyJob(jobId)
       if (cancelled) return
       if (!job) {
         setNotFound(true)
@@ -70,10 +70,10 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
         category,
         experience_level: experienceLevel,
         employment_type: employmentType,
-        location: location.trim() || undefined,
+        location: location.trim(),
         location_type: locationType,
-        salary_min: salaryMin ? Number(salaryMin) : undefined,
-        salary_max: salaryMax ? Number(salaryMax) : undefined,
+        salary_min: salaryMin ? Number(salaryMin) : null,
+        salary_max: salaryMax ? Number(salaryMax) : null,
         salary_currency: salaryCurrency.trim() || 'AUD',
         description: description.trim(),
       })
@@ -91,6 +91,8 @@ export function EditJob({ user, jobId, onSaved, onBack }: EditJobProps) {
     try {
       await closeJob(user.id, jobId)
       onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to close job')
     } finally {
       setClosing(false)
     }

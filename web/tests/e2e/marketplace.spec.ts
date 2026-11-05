@@ -1,0 +1,127 @@
+import { test, expect, type Page } from '@playwright/test'
+const job = { id: 'job-a', company_id: 'company-a', title: 'Software Engineer', slug: 'engineer', description: '<p>Build useful software.</p>', location: 'Sydney', location_type: 'hybrid', salary_min: 100000, salary_max: 140000, salary_currency: 'AUD', employment_type: 'full-time', category: 'Engineering', experience_level: 'mid', posted_at: Date.now(), status: 'active', source: 'employer', source_url: null, company_name: 'Acme', company_slug: 'acme', company_location: 'Sydney' }
+const company = { id: 'company-a', name: 'Acme', slug: 'acme', description: 'About Acme', website: '', location: 'Sydney', industry: 'Technology', size: '' }
+async function mock(page: Page, signedIn = false, changes = 1) {
+  const calls: { name: string; params: Record<string, unknown> }[] = []
+  await page.route('**/.pas/**', route => route.fulfill({ status: route.request().url().includes('/auth/me') && !signedIn ? 401 : 200, json: { id: 'person-a', login: 'person', name: 'Person', avatarUrl: null } }))
+  await page.route(/(?:api\.proappstore\.online|\/\.pas\/api\/)/, async route => {
+    const name = route.request().url().split('/').at(-1)!
+    const params = route.request().postDataJSON()?.params ?? {}
+    calls.push({ name, params })
+    const rows: Record<string, unknown[]> = {
+      list_jobs: params.search && params.search !== 'Software' ? [] : [job], count_jobs: [{ cnt: params.search && params.search !== 'Software' ? 0 : 1 }],
+      get_job: [job], get_my_job: [job], company_jobs: [job], list_companies: [company], get_company_by_slug: [company],
+      list_saved_jobs: [], list_applications: [], count_unread_notifications: [{ cnt: 0 }], is_job_saved: [{ cnt: 0 }], get_application_status: [],
+      get_my_companies: [company], get_my_jobs: [{ ...job, applicant_count: 1 }], is_company_owner: [{ cnt: 1 }],
+      get_job_applicants: [{ user_id: 'candidate', candidate_name: 'Jane Candidate', contact_email: 'jane@example.test', note: 'My message', status: 'applied', applied_at: Date.now() }],
+    }
+    await route.fulfill({ json: name === 'apply_to_job' ? { results: [{ meta: { changes } }, { meta: { changes } }] } : name in rows ? { rows: rows[name] } : { meta: { changes } } })
+  })
+  return calls
+}
+for (const width of [390, 1280]) {
+  test(`public search, detail and sign-in intent at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    const calls = await mock(page)
+    await page.goto('/')
+    await expect(page.getByText('Software Engineer', { exact: true })).toBeVisible()
+    await page.getByText('Software Engineer', { exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Software Engineer', exact: true })).toBeVisible()
+    expect(calls.some(c => ['is_job_saved', 'get_application_status'].includes(c.name))).toBe(false)
+    await page.getByRole('button', { name: 'Apply', exact: true }).filter({ visible: true }).click()
+    await expect.poll(() => page.evaluate(() => sessionStorage.getItem('jobs.intent'))).toContain('apply')
+  })
+}
+test('candidate reviews private contact details before submitting and employer sees them', async ({ page }) => {
+  const calls = await mock(page, true)
+  await page.goto('/#/job/job-a')
+  await page.getByRole('button', { name: 'Apply', exact: true }).filter({ visible: true }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Jane Candidate')
+  await page.getByLabel('Contact email').fill('jane@example.test')
+  await page.getByLabel('Message', { exact: true }).fill('My message')
+  await page.getByRole('button', { name: 'Submit application' }).click()
+  await expect(page.getByText('Application submitted!', { exact: true })).toBeVisible()
+  expect(calls.find(c => c.name === 'apply_to_job')?.params).toMatchObject({ candidate_name: 'Jane Candidate', contact_email: 'jane@example.test', note: 'My message' })
+  await page.goto('/#/applicants/job-a')
+  await expect(page.getByText('Jane Candidate', { exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'jane@example.test' })).toHaveAttribute('href', 'mailto:jane@example.test')
+})
+test('application rejection never shows submission success', async ({ page }) => {
+  await mock(page, true, 0)
+  await page.goto('/#/job/job-a')
+  await page.getByRole('button', { name: 'Apply', exact: true }).filter({ visible: true }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Jane')
+  await page.getByLabel('Contact email').fill('jane@example.test')
+  await page.getByLabel('Message', { exact: true }).fill('Hello')
+  await page.getByRole('button', { name: 'Submit application' }).click()
+  await expect(page.getByText(/Application not submitted/)).toBeVisible()
+  await expect(page.getByText('Application submitted!', { exact: true })).toHaveCount(0)
+})
+test('employer edits company, posts, edits and closes a listing', async ({ page }) => {
+  const calls = await mock(page, true)
+  await page.goto('/#/employer')
+  await page.getByRole('button', { name: 'Edit company', exact: true }).click()
+  await page.getByLabel('name', { exact: true }).fill('Acme Updated')
+  await page.getByRole('button', { name: 'Save company' }).click()
+  await expect(page.getByRole('heading', { name: 'Employer Dashboard' })).toBeVisible()
+  expect(calls.find(c => c.name === 'update_company')?.params.name).toBe('Acme Updated')
+  await page.getByRole('button', { name: 'Post a Job' }).click()
+  await page.getByLabel('Job title *', { exact: true }).fill('New Engineer')
+  await page.getByLabel('Category *', { exact: true }).selectOption({ index: 1 })
+  await page.getByLabel('Description *', { exact: true }).fill('Build software')
+  await page.getByRole('button', { name: 'Post job', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Employer Dashboard' })).toBeVisible()
+  expect(calls.some(c => c.name === 'post_job')).toBe(true)
+  await page.getByRole('button', { name: 'Edit', exact: true }).click()
+  await page.getByLabel('Job title *', { exact: true }).fill('Updated Engineer')
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Employer Dashboard' })).toBeVisible()
+  await page.getByRole('button', { name: 'Edit', exact: true }).click()
+  await page.getByRole('button', { name: 'Close job', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Employer Dashboard' })).toBeVisible()
+  expect(calls.some(c => c.name === 'close_job')).toBe(true)
+})
+test('OAuth return restores intended job and opens review without submitting', async ({ page }) => {
+  const calls = await mock(page, true)
+  await page.addInitScript(() => { sessionStorage.setItem('jobs.return', '#/job/job-a'); sessionStorage.setItem('jobs.intent', JSON.stringify({ jobId: 'job-a', action: 'apply' })) })
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Submit application' })).toBeVisible()
+  expect(calls.some(c => c.name === 'apply_to_job')).toBe(false)
+})
+test('public discovery reports empty and failed reads', async ({ page }) => {
+  await mock(page)
+  await page.goto('/')
+  await page.getByPlaceholder(/search jobs/i).fill('Missing')
+  await expect(page.getByText(/no jobs match your search/i)).toBeVisible()
+  await page.route('**/actions/list_jobs', route => route.fulfill({ status: 500, json: { error: 'unavailable' } }))
+  await page.reload()
+  await expect(page.getByRole('alert')).toContainText('Could not load jobs')
+})
+
+test('unavailable job has no application controls', async ({ page }) => {
+  await mock(page)
+  await page.route('**/actions/get_job', route => route.fulfill({ json: { rows: [] } }))
+  await page.goto('/#/job/closed')
+  await expect(page.getByText('Job unavailable or closed')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Apply', exact: true })).toHaveCount(0)
+})
+test('external apply opens the source without creating an application', async ({ page }) => {
+  const calls = await mock(page, true)
+  await page.route('**/actions/get_job', route => route.fulfill({ json: { rows: [{ ...job, source_url: 'https://example.test/vacancy' }] } }))
+  await page.addInitScript(() => { window.open = () => null })
+  await page.goto('/#/job/job-a')
+  await page.getByRole('button', { name: 'Apply', exact: true }).filter({ visible: true }).click()
+  expect(calls.some(c => c.name === 'apply_to_job')).toBe(false)
+  await expect(page.getByRole('button', { name: 'Submit application' })).toHaveCount(0)
+})
+test('save intent resumes after auth and failed employer writes remain on the form', async ({ page }) => {
+  const calls = await mock(page, true, 0)
+  await page.addInitScript(() => sessionStorage.setItem('jobs.intent', JSON.stringify({ jobId: 'job-a', action: 'save' })))
+  await page.goto('/#/job/job-a')
+  await expect.poll(() => calls.some(c => c.name === 'save_job')).toBe(true)
+  await page.goto('/#/edit-company/company-a')
+  await page.getByLabel('name', { exact: true }).fill('Updated')
+  await page.getByRole('button', { name: 'Save company' }).click()
+  await expect(page.getByRole('alert')).toContainText('No changes saved')
+  await expect(page.getByRole('heading', { name: 'Edit company' })).toBeVisible()
+})

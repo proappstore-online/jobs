@@ -57,6 +57,7 @@ export {
   updateJob,
   closeJob,
   getMyJobs,
+  getMyJob,
   getJobApplicants,
   updateApplicantStatus,
   type PostJobData,
