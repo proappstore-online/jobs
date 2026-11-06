@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests/e2e',
+  globalSetup: process.env.E2E_SESSION_TOKEN || process.env.PAS_E2E_SESSION_TOKEN
+    ? './tests/e2e/global-setup.ts' : undefined,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
