@@ -497,6 +497,78 @@
       "requires_auth": true
     },
     {
+      "name": "share_job",
+      "description": "Share a real job you found or were recommended. source_url must be the ORIGINAL posting on the company's own careers site or its ATS (Greenhouse, Lever, Workday, Ashby, SmartRecruiters...), https only; job boards and aggregators (SEEK, LinkedIn, Indeed, Jora, Glassdoor...) are rejected, so find the source posting first. source_host is the lowercase hostname of source_url. The job attaches to the company with company_slug, or creates it. Slugs are lowercase a-z, 0-9 and hyphens. Rejected or duplicate (same active source_url) submissions change nothing; candidates apply on the original site. The job then appears under get_my_jobs, and the sharer can close it with close_job.",
+      "operation": "execute",
+      "statements": [
+        "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, source_url, status, posted_by, created_at) SELECT :__uuid, COALESCE((SELECT id FROM companies WHERE slug = :company_slug), :__uuid), trim(:title), :slug, :description, :location, :location_type, :salary_min, :salary_max, :salary_currency, :employment_type, :category, :experience_level, :__now, 'community', :source_url, 'active', :__user_id, :__now WHERE length(:source_url) <= 2048 AND length(:source_host) BETWEEN 4 AND 253 AND :source_host NOT GLOB '*[^a-z0-9.-]*' AND :source_host GLOB '*[a-z0-9].[a-z]*' AND (:source_url = 'https://' || :source_host OR substr(:source_url, 1, length(:source_host) + 9) = 'https://' || :source_host || '/') AND NOT EXISTS (SELECT 1 FROM (SELECT 'seek' AS label UNION ALL SELECT 'linkedin' AS label UNION ALL SELECT 'indeed' AS label UNION ALL SELECT 'glassdoor' AS label UNION ALL SELECT 'jora' AS label UNION ALL SELECT 'careerone' AS label UNION ALL SELECT 'adzuna' AS label UNION ALL SELECT 'ziprecruiter' AS label UNION ALL SELECT 'simplyhired' AS label UNION ALL SELECT 'careerjet' AS label UNION ALL SELECT 'jooble' AS label UNION ALL SELECT 'gotjob' AS label) b WHERE '.' || :source_host || '.' LIKE '%.' || b.label || '.%') AND NOT EXISTS (SELECT 1 FROM (SELECT 'lnkd.in' AS domain UNION ALL SELECT 'monster.com' AS domain UNION ALL SELECT 'monster.com.au' AS domain UNION ALL SELECT 'talent.com' AS domain UNION ALL SELECT 'google.com' AS domain UNION ALL SELECT 'proappstore.online' AS domain) d WHERE :source_host = d.domain OR :source_host LIKE '%.' || d.domain) AND NOT EXISTS (SELECT 1 FROM jobs WHERE source_url = :source_url AND status = 'active') AND length(trim(:title)) BETWEEN 1 AND 200 AND length(trim(:description)) BETWEEN 1 AND 20000 AND length(trim(:category)) > 0 AND length(trim(:company_name)) BETWEEN 1 AND 120 AND :slug GLOB '[a-z0-9]*' AND :slug NOT GLOB '*[^a-z0-9-]*' AND length(:slug) <= 120 AND :company_slug GLOB '[a-z0-9]*' AND :company_slug NOT GLOB '*[^a-z0-9-]*' AND length(:company_slug) <= 120 AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max)",
+        "INSERT INTO companies (id, name, slug, logo_url, description, website, location, industry, size, owner_user_id, created_at) SELECT :__uuid, trim(:company_name), :company_slug, NULL, NULL, :company_website, :location, NULL, NULL, NULL, :__now WHERE EXISTS (SELECT 1 FROM jobs WHERE id = :__uuid AND company_id = :__uuid AND posted_by = :__user_id) AND NOT EXISTS (SELECT 1 FROM companies WHERE slug = :company_slug)"
+      ],
+      "params": {
+        "source_url": {
+          "type": "string"
+        },
+        "source_host": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "company_name": {
+          "type": "string"
+        },
+        "company_slug": {
+          "type": "string"
+        },
+        "company_website": {
+          "type": "string",
+          "optional": true
+        },
+        "location": {
+          "type": "string",
+          "optional": true
+        },
+        "location_type": {
+          "type": "string",
+          "optional": true,
+          "default": "onsite"
+        },
+        "salary_min": {
+          "type": "integer",
+          "optional": true
+        },
+        "salary_max": {
+          "type": "integer",
+          "optional": true
+        },
+        "salary_currency": {
+          "type": "string",
+          "optional": true,
+          "default": "AUD"
+        },
+        "employment_type": {
+          "type": "string",
+          "optional": true,
+          "default": "full-time"
+        },
+        "experience_level": {
+          "type": "string",
+          "optional": true,
+          "default": "mid"
+        }
+      },
+      "requires_auth": true
+    },
+    {
       "name": "update_job",
       "description": "Update an owned job. Each set_FIELD flag applies that field; omitted flags preserve values and nullable salary fields can be explicitly cleared.",
       "operation": "execute",

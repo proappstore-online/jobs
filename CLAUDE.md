@@ -54,5 +54,6 @@ For platform conventions, read https://proappstore.online/skills.md and https://
 ## Data flow
 
 - MVP jobs are posted by employers via the UI (`source = 'employer'`); scraper ingestion is deferred.
+- Anyone signed in can `share_job` (MCP/web, `source = 'community'`): original company/ATS URL only, job boards rejected in SQL, deduped on active `source_url`.
 - Discovery uses bounded public query actions and SDK callPublic. Personal actions use platform-cookie authentication.
 - Employer write operations verify ownership (`posted_by` / `owner_user_id`)

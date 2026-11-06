@@ -10,6 +10,7 @@ Build the simplest Seek/Indeed-style marketplace: candidates find a real job and
 - Register a company, edit its basic details, publish/edit/close a job, and review applicants using the existing statuses.
 - Let the owner and explicitly granted moderators inspect listings and companies and close a listing in the PAS Creator Console. No separate admin app.
 - Launch with manually posted, owner-approved jobs. No scraper or imported feed is required to launch.
+- Any signed-in user may share a real job they found through the `share_job` action (web or MCP, #10). The one rule: `source_url` must be the original posting on the company's careers site or its ATS. SQL rejects job boards and aggregators (SEEK, LinkedIn, Indeed, …), non-https links and duplicates. Shared jobs link out to apply; operators close abuse.
 
 ## Delivery order
 
@@ -32,7 +33,7 @@ Work goes directly to main under PAS repository conventions. Tests and platform 
 - Operator UI comes from `mcp.json.operator_view`. Its queries and writes are separate role-gated registered actions; admission to the console does not itself grant data access. Do not expose candidate contact information in the operator resource lists.
 - Reuse the existing database. Slice 1 requires no migration. Add a small additive migration for application contact fields in slice 4; never invent contact details for existing applications.
 - Public reads must use the supported PAS public-action contract and select public listing/company fields only. Keep employer editing reads separate. Confirm current SDK and platform requirements before removing the frontend sign-in gate.
-- Keep imported listings out of v1. PAS workers and authorized realtime rooms are available if ingestion or chat is justified later; neither is required for this release.
+- Keep automated imports/feeds out of v1 (user-shared original-source jobs via `share_job` are in). PAS workers and authorized realtime rooms are available if ingestion or chat is justified later; neither is required for this release.
 
 ## Explicitly deferred
 

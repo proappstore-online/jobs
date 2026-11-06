@@ -170,3 +170,33 @@ test('two employers see only their own candidates and cannot change foreign appl
   assert.equal(run('withdraw_application', { job_id: 'job-a' }).changes, 1)
   assert.equal(run('get_application_status', { job_id: 'job-a' }).length, 0)
 })
+
+test('share_job accepts original company/ATS postings, rejects job boards and duplicates', t => {
+  const { run, db } = fixture(t)
+  const share = { source_url: 'https://boards.greenhouse.io/canva/jobs/123', source_host: 'boards.greenhouse.io', title: 'Platform Engineer', slug: 'platform-engineer', description: 'Build the platform.', category: 'Engineering', company_name: 'Canva', company_slug: 'canva', company_website: 'https://www.canva.com', location: 'Sydney' }
+  const added = run('share_job', share, 'sharer-a')
+  assert.deepEqual(added.map(r => Number(r.changes)), [1, 1])
+  const job = run('list_jobs', { search: 'Platform', search_like: '%Platform%' })[0]
+  assert.equal(job.company_name, 'Canva'); assert.equal(job.source, 'community'); assert.equal(job.source_url, share.source_url)
+  assert.equal(job.employment_type, 'full-time'); assert.equal(job.salary_currency, 'AUD')
+  assert.equal(run('get_my_jobs', {}, 'sharer-a').length, 1)
+  assert.equal(run('get_my_companies', {}, 'sharer-a').length, 0)
+  assert.deepEqual(run('share_job', share, 'sharer-b').map(r => Number(r.changes)), [0, 0])
+  assert.deepEqual(run('share_job', { ...share, source_url: 'https://acme.com/careers/1', source_host: 'acme.com', company_slug: 'acme' }, 'sharer-b').map(r => Number(r.changes)), [1, 0])
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM companies WHERE slug = 'acme'").get().n, 1)
+  assert.equal(run('company_jobs', { company_id: 'company-a' }).length, 2)
+  assert.equal(run('apply_to_job', { ...contact, job_id: job.id })[0].changes, 0)
+  const rejected = [
+    ['https://www.seek.com.au/job/1', 'www.seek.com.au'], ['https://au.linkedin.com/jobs/view/1', 'au.linkedin.com'],
+    ['https://au.indeed.com/viewjob?jk=1', 'au.indeed.com'], ['https://uk.indeed.co.uk/x', 'uk.indeed.co.uk'], ['https://lnkd.in/abc', 'lnkd.in'],
+    ['https://www.google.com/search?q=jobs', 'www.google.com'], ['http://acme.org/careers', 'acme.org'], ['https://evil.com@acme.org/x', 'acme.org'],
+    ['https://acme.org.evil.com/x', 'acme.org'], ['https://ACME.org/x', 'ACME.org'], ['https://localhost/x', 'localhost'], ['https://jobs.proappstore.online/#/', 'jobs.proappstore.online']
+  ]
+  for (const [source_url, source_host] of rejected) assert.equal(run('share_job', { ...share, source_url, source_host, slug: 'x' }, 'sharer-c')[0].changes, 0, source_url)
+  for (const bad of [{ title: ' ' }, { description: '' }, { company_name: '' }, { company_slug: 'Bad Slug' }, { salary_min: 200, salary_max: 100 }]) {
+    assert.equal(run('share_job', { ...share, source_url: 'https://jobs.lever.co/x/1', source_host: 'jobs.lever.co', ...bad }, 'sharer-c')[0].changes, 0, JSON.stringify(bad))
+  }
+  assert.equal(run('close_job', { job_id: job.id }, 'sharer-b').changes, 0)
+  assert.equal(run('close_job', { job_id: job.id }, 'sharer-a').changes, 1)
+  assert.deepEqual(run('share_job', share, 'sharer-b').map(r => Number(r.changes)), [1, 0])
+})
