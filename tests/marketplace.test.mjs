@@ -189,7 +189,7 @@ test('share_job accepts original company/ATS postings, rejects job boards and du
   const rejected = [
     ['https://www.seek.com.au/job/1', 'www.seek.com.au'], ['https://au.linkedin.com/jobs/view/1', 'au.linkedin.com'],
     ['https://au.indeed.com/viewjob?jk=1', 'au.indeed.com'], ['https://uk.indeed.co.uk/x', 'uk.indeed.co.uk'], ['https://lnkd.in/abc', 'lnkd.in'],
-    ['https://www.google.com/search?q=jobs', 'www.google.com'], ['http://acme.org/careers', 'acme.org'], ['https://evil.com@acme.org/x', 'acme.org'],
+    ['https://au.jora.com/job/1', 'au.jora.com'], ['http://acme.org/careers', 'acme.org'], ['https://evil.com@acme.org/x', 'acme.org'],
     ['https://acme.org.evil.com/x', 'acme.org'], ['https://ACME.org/x', 'ACME.org'], ['https://localhost/x', 'localhost'], ['https://jobs.proappstore.online/#/', 'jobs.proappstore.online']
   ]
   for (const [source_url, source_host] of rejected) assert.equal(run('share_job', { ...share, source_url, source_host, slug: 'x' }, 'sharer-c')[0].changes, 0, source_url)
