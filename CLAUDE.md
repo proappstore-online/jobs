@@ -15,7 +15,7 @@ For platform conventions, read https://proappstore.online/skills.md and https://
 
 ## Architecture
 
-- **D1 database** — 7 migrations (companies, jobs, saved_jobs, applications, recent_views, notifications, leads, profiles)
+- **D1 database** — 8 migrations (companies, jobs, saved_jobs, applications, recent_views, notifications, leads, profiles, tailored_applications)
 - **Schema** — deploy applies `migrations.json`; keep `web/src/lib/db/core.ts` aligned for the lazy `ensureMigrated()` fallback
 - **Hash routing** — all routes below
 - **HTML sanitization** — `lib/sanitize.ts` strips unsafe tags from job descriptions
@@ -31,6 +31,8 @@ For platform conventions, read https://proappstore.online/skills.md and https://
 - `#/companies` — browse all companies
 - `#/saved` — saved jobs (sort, undo unsave)
 - `#/applications` — track applications (applied/interview/offer/rejected)
+- `#/tailored` — tailored applications from the PAGS Tailor (status, company, title, updated)
+- `#/tailored/:externalId` — tailored CV, cover letter, answers, posting link; change status
 - `#/profile` — job preferences (drive "Matches for you"), appearance, account
 
 **Market research (signed-in):**
@@ -58,11 +60,13 @@ For platform conventions, read https://proappstore.online/skills.md and https://
 | notifications | In-app notifications (new application alerts for employers) |
 | leads | Ledger of every posting seen (alerts, shares, employer posts): status new / published / duplicate / unavailable / rejected; feeds market research |
 | profiles | Per-user job preferences (country, locations, categories, work modes, types, seniority, skills, min salary) |
+| tailored_applications | Caller-scoped ledger of PAGS-tailored applications, unique per (user_id, external_id): status tailored / approved / submitted / failed / archived, CV and cover letter markdown, answers JSON |
 
 ## Data flow
 
 - MVP jobs are posted by employers via the UI (`source = 'employer'`); scraper ingestion is deferred.
 - Leads (#12): `submit_lead` records a posting seen anywhere (deduped); `publish_lead` validates its original company/ATS URL and publishes it as a job. `share_job`/`post_job`/`close_job` keep the ledger in step.
 - Anyone signed in can `share_job` (MCP/web, `source = 'community'`): original company/ATS URL only, job boards rejected in SQL, deduped on active `source_url`.
+- Tailored applications (#19): `save_tailored_application` (upsert by caller + `external_id`, keeps status), `set_tailored_status`, `list_my_tailored` (no large text columns), `get_my_tailored`. Written over MCP by the PAGS Tailor/Runner; markdown rendered through `lib/markdown.ts` + `sanitize.ts`.
 - Discovery uses bounded public query actions and SDK callPublic. Personal actions use platform-cookie authentication.
 - Employer write operations verify ownership (`posted_by` / `owner_user_id`)

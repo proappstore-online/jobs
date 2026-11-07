@@ -1478,6 +1478,106 @@
         }
       },
       "requires_auth": true
+    },
+    {
+      "name": "save_tailored_application",
+      "description": "Store or replace a tailored application (CV, cover letter, answers) for the caller, keyed by the PAGS application id external_id. A re-save replaces the material and keeps the status; a new row starts as 'tailored'. answers is a JSON array of {question, answer}.",
+      "operation": "execute",
+      "sql": "INSERT INTO tailored_applications (id, user_id, external_id, source_url, title, company_name, location, status, resume_md, cover_letter_md, answers, resume_file_name, cover_letter_file_name, created_at, updated_at) SELECT :__uuid, :__user_id, trim(:external_id), :source_url, trim(:title), trim(:company_name), NULLIF(trim(:location), ''), 'tailored', :resume_md, :cover_letter_md, :answers, :resume_file_name, :cover_letter_file_name, :__now, :__now WHERE length(trim(:external_id)) BETWEEN 1 AND 200 AND (:source_url LIKE 'http://%' OR :source_url LIKE 'https://%') AND length(:source_url) <= 2000 AND length(trim(:title)) BETWEEN 1 AND 300 AND length(trim(:company_name)) BETWEEN 1 AND 200 AND (:location IS NULL OR length(:location) <= 200) AND (:resume_md IS NULL OR length(:resume_md) <= 200000) AND (:cover_letter_md IS NULL OR length(:cover_letter_md) <= 100000) AND (:resume_file_name IS NULL OR length(:resume_file_name) <= 200) AND (:cover_letter_file_name IS NULL OR length(:cover_letter_file_name) <= 200) AND json_valid(:answers) AND json_type(:answers) = 'array' AND json_array_length(:answers) <= 100 AND length(:answers) <= 200000 AND NOT EXISTS (SELECT 1 FROM json_each(:answers) WHERE type != 'object' OR json_type(value, '$.question') IS NOT 'text' OR json_type(value, '$.answer') IS NOT 'text') ON CONFLICT(user_id, external_id) DO UPDATE SET source_url = excluded.source_url, title = excluded.title, company_name = excluded.company_name, location = excluded.location, resume_md = excluded.resume_md, cover_letter_md = excluded.cover_letter_md, answers = excluded.answers, resume_file_name = excluded.resume_file_name, cover_letter_file_name = excluded.cover_letter_file_name, updated_at = excluded.updated_at",
+      "params": {
+        "external_id": {
+          "type": "string"
+        },
+        "source_url": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "company_name": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string",
+          "optional": true
+        },
+        "resume_md": {
+          "type": "string",
+          "optional": true
+        },
+        "cover_letter_md": {
+          "type": "string",
+          "optional": true
+        },
+        "answers": {
+          "type": "string",
+          "optional": true,
+          "default": "[]"
+        },
+        "resume_file_name": {
+          "type": "string",
+          "optional": true
+        },
+        "cover_letter_file_name": {
+          "type": "string",
+          "optional": true
+        }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "set_tailored_status",
+      "description": "Set the status of the caller's tailored application: tailored, approved, submitted, failed or archived. note replaces the status note; submitted_at is epoch ms (defaults to now when status is submitted).",
+      "operation": "execute",
+      "sql": "UPDATE tailored_applications SET status = :status, status_note = :note, submitted_at = COALESCE(:submitted_at, CASE WHEN :status = 'submitted' THEN :__now END, submitted_at), updated_at = :__now WHERE user_id = :__user_id AND external_id = :external_id AND :status IN ('tailored', 'approved', 'submitted', 'failed', 'archived') AND (:note IS NULL OR length(:note) <= 2000)",
+      "params": {
+        "external_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string",
+          "optional": true
+        },
+        "submitted_at": {
+          "type": "integer",
+          "optional": true
+        }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "list_my_tailored",
+      "description": "The caller's tailored applications, newest updated first, optionally by status. Omits the CV, cover letter and answers; use get_my_tailored for those.",
+      "operation": "query",
+      "sql": "SELECT id, external_id, source_url, title, company_name, location, status, status_note, submitted_at, resume_file_name, cover_letter_file_name, created_at, updated_at FROM tailored_applications WHERE user_id = :__user_id AND (:status IS NULL OR status = :status) ORDER BY updated_at DESC LIMIT :limit",
+      "params": {
+        "status": {
+          "type": "string",
+          "optional": true
+        },
+        "limit": {
+          "type": "integer",
+          "optional": true,
+          "default": 100,
+          "max": 500
+        }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "get_my_tailored",
+      "description": "One of the caller's tailored applications by external_id, with the full CV, cover letter and answers.",
+      "operation": "query",
+      "sql": "SELECT id, external_id, source_url, title, company_name, location, status, status_note, submitted_at, resume_md, cover_letter_md, answers, resume_file_name, cover_letter_file_name, created_at, updated_at FROM tailored_applications WHERE user_id = :__user_id AND external_id = :external_id LIMIT 1",
+      "params": {
+        "external_id": {
+          "type": "string"
+        }
+      },
+      "requires_auth": true
     }
   ],
   "operator_view": {
