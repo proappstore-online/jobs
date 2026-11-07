@@ -128,3 +128,27 @@ test('migration backfills existing jobs into the ledger', t => {
   ])
   assert.equal(db.prepare("SELECT country FROM companies WHERE id = 'c'").get().country, 'AU')
 })
+
+test('submit_leads stores valid elements, skips invalid/known ones and dedupes against the ledger', t => {
+  const { run, lead, db } = fixture(t)
+  run('submit_lead', seen)
+  const batch = [
+    { ...seen, tags: ['it leadership'] },
+    { ...seen, source_url: 'https://www.linkedin.com/jobs/view/7', source_board: 'linkedin', tags: ['erp'] },
+    { ...seen, source_url: 'https://au.seek.com/job/2', title: 'Data Engineer', company_slug: 'acme', company_name: 'Acme', tags: ['python', 'aws'], seen_at: 1_790_000_000_001 },
+    { ...seen, source_url: 'https://au.seek.com/job/3', title: 'Graphic Designer', company_slug: 'deeca', company_name: 'DEECA', tags: undefined, seen_at: undefined, category: undefined },
+    { ...seen, source_url: 'https://au.seek.com/job/4', company_slug: 'Bad Slug' },
+    { ...seen, source_url: 'https://au.seek.com/job/5', seen_at: 12 },
+    { ...seen, source_url: 'https://au.seek.com/job/6', tags: ['UPPER'] },
+  ].map(({ tags, ...rest }) => tags === undefined ? rest : { ...rest, tags })
+  assert.equal(run('submit_leads', { leads: JSON.stringify(batch) }, 'scout'), 3)
+  assert.equal(lead('https://www.linkedin.com/jobs/view/7').status, 'duplicate')
+  const acme = lead('https://au.seek.com/job/2')
+  assert.equal(acme.status, 'new'); assert.equal(acme.tags, '["python","aws"]'); assert.equal(acme.submitted_by, 'scout'); assert.match(acme.id, /^lead-[0-9a-f]{32}$/)
+  const deeca = lead('https://au.seek.com/job/3')
+  assert.equal(deeca.tags, '[]'); assert.equal(deeca.country, 'AU'); assert.equal(deeca.category, null)
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM leads').get().n, 4)
+  assert.equal(run('submit_leads', { leads: JSON.stringify(Array.from({ length: 51 }, (_, i) => ({ ...seen, source_url: 'https://au.seek.com/x/' + i }))) }), 0, 'max 50 per call')
+  assert.equal(run('submit_leads', { leads: 'not json' }), 0)
+  assert.equal(run('list_my_leads', {}, 'scout').length, 3)
+})
