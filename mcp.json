@@ -223,7 +223,7 @@
       "operation": "batch",
       "statements": [
         "INSERT OR IGNORE INTO applications (id, user_id, job_id, status, note, candidate_name, contact_email, applied_at) SELECT :__uuid, :__user_id, :job_id, 'applied', :note, trim(:candidate_name), trim(:contact_email), :__now WHERE length(trim(:candidate_name)) BETWEEN 1 AND 120 AND length(:contact_email) <= 254 AND trim(:contact_email) LIKE '%_@_%._%' AND length(trim(:note)) BETWEEN 1 AND 5000 AND EXISTS (SELECT 1 FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.id = :job_id AND j.status = 'active' AND j.source_url IS NULL AND j.posted_by IS NOT NULL AND j.posted_by != :__user_id AND COALESCE(c.owner_user_id, '') != :__user_id)",
-        "INSERT INTO notifications (id, user_id, type, title, body, link, created_at) SELECT :notification_id, j.posted_by, 'new_application', 'New application', 'Someone applied to \"' || j.title || '\"', '#/applicants/' || :job_id, :__now FROM jobs j WHERE j.id = :job_id AND j.posted_by IS NOT NULL AND changes() = 1 AND EXISTS (SELECT 1 FROM applications a WHERE a.id = :__uuid AND a.user_id = :__user_id AND a.job_id = :job_id)"
+        "INSERT INTO notifications (id, user_id, type, title, body, link, created_at) SELECT :notification_id, j.posted_by, 'new_application', 'New application', 'Someone applied to \"' || j.title || '\"', '#/applicants/' || :job_id, :__now FROM jobs j WHERE j.id = :job_id AND j.posted_by IS NOT NULL AND changes() = 1 AND EXISTS (SELECT 1 FROM applications a WHERE a.user_id = :__user_id AND a.job_id = :job_id AND a.applied_at = :__now)"
       ],
       "params": {
         "job_id": {

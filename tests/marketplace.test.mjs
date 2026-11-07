@@ -16,8 +16,10 @@ function fixture(t) {
     const result = []
     db.exec('BEGIN')
     try {
-      const auto = { __user_id: user, __uuid: 'id-' + ++sequence, __now: 1000 }
-      for (const sql of sqls) {
+      // Like the platform executor: :__uuid is fresh per occurrence, :__now is one reading per call.
+      const auto = { __user_id: user, __now: 1000 + ++sequence }
+      for (const raw of sqls) {
+        const sql = raw.replace(/:__uuid\b/g, () => { const k = '__uuid_' + ++sequence; auto[k] = 'id-' + sequence; return ':' + k })
         const bound = Object.fromEntries([...sql.matchAll(/:([\w]+)/g)].map(([, key]) => [key, key in auto ? auto[key] : params[key] ?? null]))
         result.push(tool.operation === 'query' ? db.prepare(sql).all(bound) : db.prepare(sql).run(bound))
       }
