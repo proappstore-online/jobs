@@ -31,6 +31,10 @@
     {
       "name": "0008_tailored_applications",
       "sql": "CREATE TABLE IF NOT EXISTS tailored_applications ( id TEXT PRIMARY KEY, user_id TEXT NOT NULL, external_id TEXT NOT NULL, source_url TEXT NOT NULL, title TEXT NOT NULL, company_name TEXT NOT NULL, location TEXT, status TEXT NOT NULL DEFAULT 'tailored', status_note TEXT, submitted_at INTEGER, resume_md TEXT, cover_letter_md TEXT, answers TEXT NOT NULL DEFAULT '[]', resume_file_name TEXT, cover_letter_file_name TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, UNIQUE (user_id, external_id) ); CREATE INDEX IF NOT EXISTS idx_tailored_user_updated ON tailored_applications(user_id, updated_at DESC);"
+    },
+    {
+      "name": "0009_lead_tracking",
+      "sql": "ALTER TABLE leads ADD COLUMN external_id TEXT; ALTER TABLE leads ADD COLUMN verification_state TEXT; ALTER TABLE leads ADD COLUMN verified_at INTEGER; ALTER TABLE leads ADD COLUMN decision TEXT; ALTER TABLE leads ADD COLUMN no_original_reason TEXT; CREATE INDEX IF NOT EXISTS idx_leads_submitter_external ON leads(submitted_by, external_id);"
     }
   ]
 }

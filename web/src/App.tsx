@@ -10,6 +10,7 @@ import { SavedJobs } from './pages/SavedJobs'
 import { Companies } from './pages/Companies'
 import { Applications } from './pages/Applications'
 import { Tailored } from './pages/Tailored'
+import { Leads } from './pages/Leads'
 import { TailoredDetail } from './pages/TailoredDetail'
 import { EmployerDashboard } from './pages/EmployerDashboard'
 import { RegisterCompany } from './pages/RegisterCompany'
@@ -32,6 +33,7 @@ type Route =
   | { name: 'saved' }
   | { name: 'companies' }
   | { name: 'applications' }
+  | { name: 'leads' }
   | { name: 'tailored' }
   | { name: 'tailored-detail'; externalId: string }
   | { name: 'employer' }
@@ -61,6 +63,7 @@ function parseHash(): Route {
   if (h === '#/saved') return { name: 'saved' }
   if (h === '#/companies') return { name: 'companies' }
   if (h === '#/applications') return { name: 'applications' }
+  if (h === '#/leads') return { name: 'leads' }
   if (h === '#/tailored') return { name: 'tailored' }
   m = h.match(/^#\/tailored\/([^/?#]+)$/)
   if (m) return { name: 'tailored-detail', externalId: decodeURIComponent(m[1]) }
@@ -189,6 +192,8 @@ export default function App() {
           onBack={() => nav('#/')}
         />
       )
+    if (route.name === 'leads' && user)
+      return <Leads onBack={() => nav('#/')} />
     if (route.name === 'tailored' && user)
       return <Tailored onOpen={(id) => nav(`#/tailored/${encodeURIComponent(id)}`)} onBack={() => nav('#/')} />
     if (route.name === 'tailored-detail' && user)
