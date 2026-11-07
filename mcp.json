@@ -1450,11 +1450,33 @@
       "requires_auth": true
     },
     {
-      "name": "backfill_my_leads_work_mode",
-      "description": "TEMPORARY (#15): copy the legacy location_type into work_mode on leads the caller submitted. Removed after the one-off backfill.",
+      "name": "rename_my_company",
+      "description": "Merge an employer alias in the caller's own leads: leads submitted by the caller with company_slug from_slug (not published) move to to_slug / company_name, so research counts one employer once.",
       "operation": "execute",
-      "sql": "UPDATE leads SET work_mode = location_type WHERE submitted_by = :__user_id AND work_mode IS NULL AND location_type IS NOT NULL",
-      "params": {},
+      "sql": "UPDATE leads SET company_slug = :to_slug, company_name = trim(:company_name), updated_at = :__now WHERE submitted_by = :__user_id AND company_slug = :from_slug AND status IN ('new', 'duplicate', 'unavailable') AND :to_slug GLOB '[a-z0-9]*' AND :to_slug NOT GLOB '*[^a-z0-9-]*' AND length(:to_slug) <= 120 AND length(trim(:company_name)) BETWEEN 1 AND 120",
+      "params": {
+        "from_slug": {
+          "type": "string"
+        },
+        "to_slug": {
+          "type": "string"
+        },
+        "company_name": {
+          "type": "string"
+        }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "mark_my_duplicates",
+      "description": "Mark the caller's unvalidated leads for one employer as duplicates of a published lead with the same title or the same original URL, linking duplicate_of.",
+      "operation": "execute",
+      "sql": "UPDATE leads SET status = 'duplicate', duplicate_of = (SELECT p.id FROM leads p WHERE p.company_slug = leads.company_slug AND p.country = leads.country AND p.status = 'published' AND p.id != leads.id AND (lower(p.title) = lower(leads.title) OR p.original_url = replace(leads.source_url, 'http://', 'https://') || '/') ORDER BY p.created_at LIMIT 1), updated_at = :__now WHERE submitted_by = :__user_id AND company_slug = :company_slug AND status = 'new' AND EXISTS (SELECT 1 FROM leads p WHERE p.company_slug = leads.company_slug AND p.country = leads.country AND p.status = 'published' AND p.id != leads.id AND (lower(p.title) = lower(leads.title) OR p.original_url = replace(leads.source_url, 'http://', 'https://') || '/'))",
+      "params": {
+        "company_slug": {
+          "type": "string"
+        }
+      },
       "requires_auth": true
     }
   ],

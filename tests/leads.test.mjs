@@ -219,3 +219,20 @@ test('profile is private and validated; matches follow the saved preferences', t
   assert.deepEqual(run('list_my_matches').map(j => j.id).sort(), ['match', 'remote-sydney'])
   assert.equal(run('list_my_matches', {}, 'user-b').length, 0, 'no profile, no matches')
 })
+
+test('submitters can merge an employer alias and mark their leads duplicates of a published lead', t => {
+  const { run, lead } = fixture(t)
+  run('share_job', { source_url: 'https://careers.deeca.vic.gov.au/job/Graphic-Designer/1/', source_host: 'careers.deeca.vic.gov.au', title: 'Graphic Designer', slug: 'gd', description: 'd', category: 'Design', company_name: 'DEECA', company_slug: 'deeca' }, 'me')
+  run('submit_leads', { leads: JSON.stringify([
+    { source_url: 'http://careers.deeca.vic.gov.au/job/Graphic-Designer/1', title: 'Graphic Designer', company_name: 'Department (DEECA)', company_slug: 'department-deeca' },
+    { source_url: 'http://careers.deeca.vic.gov.au/job/Policy/2', title: 'Policy Officer', company_name: 'Department (DEECA)', company_slug: 'department-deeca' },
+  ]) }, 'me')
+  assert.equal(run('rename_my_company', { from_slug: 'department-deeca', to_slug: 'deeca', company_name: 'DEECA' }, 'someone-else'), 0)
+  assert.equal(run('rename_my_company', { from_slug: 'department-deeca', to_slug: 'Bad Slug', company_name: 'DEECA' }, 'me'), 0)
+  assert.equal(run('rename_my_company', { from_slug: 'department-deeca', to_slug: 'deeca', company_name: 'DEECA' }, 'me'), 2)
+  assert.equal(run('mark_my_duplicates', { company_slug: 'deeca' }, 'me'), 1)
+  const gd = lead('http://careers.deeca.vic.gov.au/job/Graphic-Designer/1')
+  assert.equal(gd.status, 'duplicate'); assert.equal(gd.duplicate_of, lead('https://careers.deeca.vic.gov.au/job/Graphic-Designer/1/').id)
+  assert.equal(lead('http://careers.deeca.vic.gov.au/job/Policy/2').status, 'new')
+  assert.deepEqual(run('research_employers').map(e => [e.company_slug, e.postings]), [['deeca', 2]])
+})
