@@ -1448,6 +1448,14 @@
       "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM profiles p JOIN jobs j ON j.status = 'active' JOIN companies c ON c.id = j.company_id WHERE p.user_id = :__user_id AND c.country = p.country AND (json_array_length(p.categories) = 0 OR j.category IN (SELECT value FROM json_each(p.categories))) AND (json_array_length(p.work_modes) = 0 OR j.location_type IN (SELECT value FROM json_each(p.work_modes))) AND (json_array_length(p.employment_types) = 0 OR j.employment_type IN (SELECT value FROM json_each(p.employment_types))) AND (json_array_length(p.seniorities) = 0 OR j.experience_level IN (SELECT value FROM json_each(p.seniorities))) AND (p.min_salary IS NULL OR COALESCE(j.salary_max, j.salary_min) IS NULL OR COALESCE(j.salary_max, j.salary_min) >= p.min_salary) AND (json_array_length(p.locations) = 0 OR j.location_type = 'remote' OR EXISTS (SELECT 1 FROM json_each(p.locations) x WHERE instr(lower(COALESCE(j.location, '')), lower(x.value)) > 0)) ORDER BY j.posted_at DESC LIMIT 50",
       "params": {},
       "requires_auth": true
+    },
+    {
+      "name": "backfill_my_leads_work_mode",
+      "description": "TEMPORARY (#15): copy the legacy location_type into work_mode on leads the caller submitted. Removed after the one-off backfill.",
+      "operation": "execute",
+      "sql": "UPDATE leads SET work_mode = location_type WHERE submitted_by = :__user_id AND work_mode IS NULL AND location_type IS NOT NULL",
+      "params": {},
+      "requires_auth": true
     }
   ],
   "operator_view": {
