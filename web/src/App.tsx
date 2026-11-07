@@ -16,8 +16,12 @@ import { EditJob } from './pages/EditJob'
 import { Applicants } from './pages/Applicants'
 import { Notifications } from './pages/Notifications'
 import { EditCompany } from './pages/EditCompany'
-import { requestSignIn } from './lib/auth-intent'
 import { Loading } from './components/Loading'
+import { Nav, navSection } from './components/Nav'
+import { Research } from './pages/Research'
+import { ResearchEmployers } from './pages/ResearchEmployers'
+import { EmployerProfile } from './pages/EmployerProfile'
+import { Profile } from './pages/Profile'
 
 type Route =
   | { name: 'browse' }
@@ -33,6 +37,10 @@ type Route =
   | { name: 'edit-job'; jobId: string }
   | { name: 'applicants'; jobId: string }
   | { name: 'notifications' }
+  | { name: 'research' }
+  | { name: 'research-employers'; category?: string }
+  | { name: 'research-employer'; companySlug: string }
+  | { name: 'profile' }
 
 function parseHash(): Route {
   const h = location.hash
@@ -40,6 +48,12 @@ function parseHash(): Route {
   if (m) return { name: 'job', jobId: m[1] }
   m = h.match(/^#\/company\/([\w-]+)$/)
   if (m) return { name: 'company', companySlug: m[1] }
+  if (h === '#/research') return { name: 'research' }
+  m = h.match(/^#\/research\/employers(?:\?category=([\w-]+))?$/)
+  if (m) return { name: 'research-employers', category: m[1] }
+  m = h.match(/^#\/research\/employers\/([\w-]+)$/)
+  if (m) return { name: 'research-employer', companySlug: m[1] }
+  if (h === '#/profile') return { name: 'profile' }
   if (h === '#/saved') return { name: 'saved' }
   if (h === '#/companies') return { name: 'companies' }
   if (h === '#/applications') return { name: 'applications' }
@@ -137,6 +151,13 @@ export default function App() {
         />
       )
     if (!user && !['browse', 'companies'].includes(route.name)) return <SignIn />
+    if (route.name === 'research' && user)
+      return <Research onOpenEmployer={(slug) => nav(`#/research/employers/${slug}`)} onOpenDirectory={(cat) => nav(cat ? `#/research/employers?category=${cat}` : '#/research/employers')} />
+    if (route.name === 'research-employers' && user)
+      return <ResearchEmployers key={route.category ?? ''} initialCategory={route.category} onOpenEmployer={(slug) => nav(`#/research/employers/${slug}`)} onBack={() => nav('#/research')} />
+    if (route.name === 'research-employer' && user)
+      return <EmployerProfile companySlug={route.companySlug} onOpenJob={(id) => nav(`#/job/${id}`)} onBack={() => nav('#/research/employers')} />
+    if (route.name === 'profile' && user) return <Profile user={user} onOpen={nav} />
     if (route.name === 'edit-company' && user) return <EditCompany user={user} companyId={route.companyId} onSaved={() => nav('#/employer')} />
     if (route.name === 'saved' && user)
       return (
@@ -226,130 +247,8 @@ export default function App() {
 
   return (
     <>
-      {user ? <Nav user={user} savedCount={savedCount} applicationsCount={applicationsCount} unreadCount={unreadCount} /> : <nav className="flex justify-between p-4"><a href="#/">Jobs</a><a href="#/employer">Employers</a><button onClick={() => requestSignIn()}>Sign in</button></nav>}
-      {content}
+      <Nav user={user} current={navSection(route.name)} savedCount={savedCount} applicationsCount={applicationsCount} unreadCount={unreadCount} />
+      <main className="pb-20 sm:pb-0">{content}</main>
     </>
-  )
-}
-
-function Nav({
-  user,
-  savedCount,
-  applicationsCount,
-  unreadCount,
-}: {
-  user: { id: string; login: string; avatarUrl: string | null }
-  savedCount: number
-  applicationsCount: number
-  unreadCount: number
-}) {
-  const [menuOpen, setMenuOpen] = useState(false)
-
-  return (
-    <nav className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--panel)] backdrop-blur-xl">
-      <div className="flex items-center justify-between px-5 py-3">
-        <a href="#/" className="display-font text-xl font-bold text-[var(--ink)]">
-          Jobs
-        </a>
-
-        {/* Desktop links */}
-        <div className="hidden items-center gap-4 sm:flex">
-          <NavLinks savedCount={savedCount} applicationsCount={applicationsCount} unreadCount={unreadCount} />
-          <UserButton user={user} />
-        </div>
-
-        {/* Mobile menu button */}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="flex items-center gap-2 sm:hidden"
-          aria-label="Menu"
-        >
-          {unreadCount > 0 && (
-            <span className="flex h-2 w-2 rounded-full bg-[var(--accent)]" />
-          )}
-          <UserButton user={user} />
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round">
-            {menuOpen ? (
-              <>
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </>
-            ) : (
-              <>
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </>
-            )}
-          </svg>
-        </button>
-      </div>
-
-      {/* Mobile dropdown */}
-      {menuOpen && (
-        <div className="flex flex-col gap-3 border-t border-[var(--line)] px-5 py-4 sm:hidden">
-          <NavLinks savedCount={savedCount} applicationsCount={applicationsCount} unreadCount={unreadCount} onClick={() => setMenuOpen(false)} />
-          <button
-            onClick={() => app.auth.signOut()}
-            className="text-left text-sm text-[var(--muted)] hover:text-[var(--ink)]"
-          >
-            Sign out
-          </button>
-        </div>
-      )}
-    </nav>
-  )
-}
-
-function NavLinks({
-  savedCount,
-  applicationsCount,
-  unreadCount,
-  onClick,
-}: {
-  savedCount: number
-  applicationsCount: number
-  unreadCount: number
-  onClick?: () => void
-}) {
-  const linkClass = 'text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]'
-  return (
-    <>
-      <a href="#/companies" className={linkClass} onClick={onClick}>Companies</a>
-      <a href="#/employer" className={linkClass} onClick={onClick}>Employers</a>
-      <a href="#/notifications" className={`relative ${linkClass}`} onClick={onClick}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block">
-          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 01-3.46 0" />
-        </svg>
-        {unreadCount > 0 && <CountBadge count={unreadCount} />}
-      </a>
-      <a href="#/applications" className={`relative ${linkClass}`} onClick={onClick}>
-        Applications
-        {applicationsCount > 0 && <CountBadge count={applicationsCount} />}
-      </a>
-      <a href="#/saved" className={`relative ${linkClass}`} onClick={onClick}>
-        Saved
-        {savedCount > 0 && <CountBadge count={savedCount} />}
-      </a>
-    </>
-  )
-}
-
-function CountBadge({ count }: { count: number }) {
-  return (
-    <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[0.65rem] font-semibold text-white">
-      {count}
-    </span>
-  )
-}
-
-function UserButton({ user }: { user: { login: string; avatarUrl: string | null } }) {
-  return user.avatarUrl ? (
-    <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full" />
-  ) : (
-    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--line-strong)] text-xs font-semibold text-[var(--ink)]">
-      {user.login[0].toUpperCase()}
-    </span>
   )
 }

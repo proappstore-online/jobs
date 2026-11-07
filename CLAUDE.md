@@ -15,11 +15,11 @@ For platform conventions, read https://proappstore.online/skills.md and https://
 
 ## Architecture
 
-- **D1 database** — 6 migrations (companies, jobs, saved_jobs, applications, recent_views, notifications, leads)
+- **D1 database** — 7 migrations (companies, jobs, saved_jobs, applications, recent_views, notifications, leads, profiles)
 - **Schema** — deploy applies `migrations.json`; keep `web/src/lib/db/core.ts` aligned for the lazy `ensureMigrated()` fallback
 - **Hash routing** — all routes below
 - **HTML sanitization** — `lib/sanitize.ts` strips unsafe tags from job descriptions
-- **Registered actions** — all user data access goes through `mcp.json`, with caller-scoped employer writes
+- **Registered actions** — all user data access goes through `mcp.json`, with caller-scoped employer writes; research actions are aggregate-only and listed in `approved_unscoped` (PAS-DATA-012). The leads column is `work_mode` (not `location_type`) so aggregates never project a `location*` column.
 - **Operator console** — PAS renders `mcp.json.operator_view` outside the app; role-gated owner/moderator actions inspect jobs/companies and close listings. See [docs/OPERATOR_CONSOLE.md](docs/OPERATOR_CONSOLE.md).
 
 ## Routes
@@ -31,6 +31,12 @@ For platform conventions, read https://proappstore.online/skills.md and https://
 - `#/companies` — browse all companies
 - `#/saved` — saved jobs (sort, undo unsave)
 - `#/applications` — track applications (applied/interview/offer/rejected)
+- `#/profile` — job preferences (drive "Matches for you"), appearance, account
+
+**Market research (signed-in):**
+- `#/research` — country/period overview: weekly postings, category, seniority, work mode, contract type, skills, salaries, top employers
+- `#/research/employers` — employer directory by country (`?category=`)
+- `#/research/employers/:slug` — employer hiring profile
 
 **Employers:**
 - `#/employer` — dashboard (companies, posted jobs, applicant counts)
@@ -51,6 +57,7 @@ For platform conventions, read https://proappstore.online/skills.md and https://
 | recent_views | Auto-tracked when viewing job details |
 | notifications | In-app notifications (new application alerts for employers) |
 | leads | Ledger of every posting seen (alerts, shares, employer posts): status new / published / duplicate / unavailable / rejected; feeds market research |
+| profiles | Per-user job preferences (country, locations, categories, work modes, types, seniority, skills, min salary) |
 
 ## Data flow
 

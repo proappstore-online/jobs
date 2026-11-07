@@ -19,6 +19,7 @@
   --glass-hover: rgba(255, 255, 255, 0.85);
   --glass-strong: rgba(255, 255, 255, 0.88);
   --accent: #d86f4d;
+  --chart-mark: #d86f4d;
   --accent-soft: #ffd4bf;
   --accent-deep: #9f4427;
   --sky: #4c97b5;
@@ -64,6 +65,7 @@
   --glass-hover: rgba(38, 38, 38, 0.9);
   --glass-strong: rgba(16, 16, 16, 0.9);
   --accent: #ff9b76;
+  --chart-mark: #d86f4d;
   --accent-soft: #3b2119;
   --accent-deep: #ffd9cb;
   --sky: #89cbe5;

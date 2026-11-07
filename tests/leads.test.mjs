@@ -152,3 +152,70 @@ test('submit_leads stores valid elements, skips invalid/known ones and dedupes a
   assert.equal(run('submit_leads', { leads: 'not json' }), 0)
   assert.equal(run('list_my_leads', {}, 'scout').length, 3)
 })
+
+function seed(run) {
+  const rows = [
+    ['https://au.seek.com/job/r1', 'Engineering Manager', 'Acme', 'acme', 'Engineering', 'hybrid', 'senior', '["engineering management","aws"]', 1_790_000_000_000],
+    ['https://au.seek.com/job/r2', 'Data Engineer', 'Acme', 'acme', 'Engineering', 'remote', 'mid', '["python","aws"]', 1_790_700_000_000],
+    ['https://au.seek.com/job/r3', 'Project Manager', 'Beta', 'beta', 'Operations', 'onsite', 'senior', '["project management"]', 1_790_700_000_001],
+    ['https://nz.seek.com/job/r4', 'Designer', 'Kiwi', 'kiwi', 'Design', null, 'mid', '[]', 1_790_700_000_002, 'NZ'],
+  ]
+  for (const [source_url, title, company_name, company_slug, category, location_type, experience_level, tags, seen_at, country = 'AU'] of rows) {
+    run('submit_lead', { source_url, title, company_name, company_slug, category, location_type, experience_level, tags, seen_at, country, salary_min: title === 'Data Engineer' ? 150000 : null, salary_max: title === 'Data Engineer' ? 180000 : null }, 'submitter-secret')
+  }
+  run('submit_lead', { source_url: 'https://www.linkedin.com/jobs/view/r1', title: 'Engineering Manager', company_name: 'Acme', company_slug: 'acme', seen_at: 1_790_000_000_005 }, 'submitter-secret')
+}
+
+test('research actions aggregate the ledger by country, exclude duplicates and never expose submitters', t => {
+  const { run } = fixture(t)
+  seed(run)
+  assert.deepEqual(run('research_countries').map(r => [r.country, r.postings]), [['AU', 3], ['NZ', 1]])
+  const s = run('research_summary')[0]
+  assert.equal(s.postings, 3); assert.equal(s.employers, 2); assert.equal(s.unvalidated, 3)
+  assert.equal(run('research_summary', { company_slug: 'acme' })[0].postings, 2)
+  assert.equal(run('research_summary', { since: 1_790_500_000_000 })[0].postings, 2)
+  assert.deepEqual(run('research_weekly').map(r => r.postings).reduce((a, b) => a + b, 0), 3)
+  const facets = run('research_facets')
+  assert.equal(facets.find(f => f.work_mode === 'remote').salary_floor, 150000)
+  assert.deepEqual(run('research_tags').slice(0, 1).map(r => [r.tag, r.postings]), [['aws', 2]])
+  const employers = run('research_employers')
+  assert.deepEqual(employers.map(e => [e.company_slug, e.postings, e.top_category]), [['acme', 2, 'Engineering'], ['beta', 1, 'Operations']])
+  assert.equal(run('research_employers', { q: 'Bet' }).length, 1)
+  assert.equal(run('research_employers', { country: 'NZ' })[0].company_name, 'Kiwi')
+  assert.deepEqual(run('research_employer_roles', { company_slug: 'acme' }).map(r => r.title), ['Data Engineer', 'Engineering Manager'])
+  const everything = JSON.stringify([...['research_countries', 'research_summary', 'research_weekly', 'research_facets', 'research_tags', 'research_employers'].map(n => run(n)), run('research_employer_roles', { company_slug: 'acme' })])
+  assert.doesNotMatch(everything, /submitter-secret|submitted_by|seek\.com/)
+})
+
+test('research actions are approved, aggregate-only and require sign-in', () => {
+  const approved = new Set(manifest.approved_unscoped.map(a => a.action))
+  for (const t of manifest.tools.filter(t => t.name.startsWith('research_'))) {
+    assert.equal(t.requires_auth, true, t.name); assert.ok(approved.has(t.name), t.name)
+    assert.doesNotMatch(t.sql.replaceAll("COUNT(*)", "COUNT(1)"), /submitted_by|source_url|original_url|\*/, t.name)
+  }
+})
+
+const prefs = { display_name: 'Serge', country: 'AU', locations: '["melbourne"]', categories: '["Engineering"]', work_modes: '[]', employment_types: '[]', seniorities: '["senior","lead"]', tags: '["aws"]', min_salary: 120000 }
+
+test('profile is private and validated; matches follow the saved preferences', t => {
+  const { run } = fixture(t)
+  assert.equal(run('get_my_profile').length, 0)
+  assert.equal(run('save_my_profile', prefs), 1)
+  assert.equal(run('get_my_profile')[0].display_name, 'Serge')
+  assert.equal(run('get_my_profile', {}, 'user-b').length, 0)
+  for (const bad of [{ country: 'au' }, { categories: '["Wizardry"]' }, { work_modes: '["moon"]' }, { tags: '["UPPER"]' }, { locations: 'melbourne' }, { min_salary: -1 }, { display_name: 'x'.repeat(61) }]) {
+    assert.equal(run('save_my_profile', { ...prefs, ...bad }), 0, JSON.stringify(bad))
+  }
+  assert.equal(run('save_my_profile', { ...prefs, display_name: 'S2' }), 1, 'upsert')
+  assert.equal(run('get_my_profile')[0].display_name, 'S2')
+  run('register_company', { id: 'c1', name: 'Acme', slug: 'acme' }, 'emp')
+  const job = (id, extra) => ({ id, company_id: 'c1', title: id, slug: id, description: 'd', category: 'Engineering', location: 'Melbourne VIC', location_type: 'hybrid', salary_currency: 'AUD', employment_type: 'full-time', experience_level: 'senior', ...extra })
+  run('post_job', job('match'), 'emp')
+  run('post_job', job('sydney', { location: 'Sydney NSW' }), 'emp')
+  run('post_job', job('remote-sydney', { location: 'Sydney NSW', location_type: 'remote' }), 'emp')
+  run('post_job', job('junior', { experience_level: 'entry' }), 'emp')
+  run('post_job', job('cheap', { salary_max: 90000 }), 'emp')
+  run('post_job', job('design', { category: 'Design' }), 'emp')
+  assert.deepEqual(run('list_my_matches').map(j => j.id).sort(), ['match', 'remote-sydney'])
+  assert.equal(run('list_my_matches', {}, 'user-b').length, 0, 'no profile, no matches')
+})

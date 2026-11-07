@@ -496,7 +496,7 @@
       "requires_auth": true,
       "statements": [
         "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, status, posted_by, created_at) SELECT :id, :company_id, :title, :slug, :description, :location, :location_type, :salary_min, :salary_max, :salary_currency, :employment_type, :category, :experience_level, :__now, 'employer', 'active', :__user_id, :__now WHERE EXISTS (SELECT 1 FROM companies c WHERE c.id = :company_id AND c.owner_user_id = :__user_id) AND length(trim(:title)) > 0 AND length(trim(:description)) > 0 AND length(trim(:category)) > 0 AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max)",
-        "INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, location_type, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT 'lead-' || j.id, 'https://jobs.proappstore.online/#/job/' || j.id, 'jobs', NULL, j.title, c.name, c.slug, c.country, j.location, j.category, j.location_type, j.employment_type, j.experience_level, j.salary_min, j.salary_max, '[]', :__now, 'published', NULL, j.id, :__user_id, NULL, :__now, :__now FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.id = :id AND j.posted_by = :__user_id AND j.created_at = :__now"
+        "INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, work_mode, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT 'lead-' || j.id, 'https://jobs.proappstore.online/#/job/' || j.id, 'jobs', NULL, j.title, c.name, c.slug, c.country, j.location, j.category, j.location_type, j.employment_type, j.experience_level, j.salary_min, j.salary_max, '[]', :__now, 'published', NULL, j.id, :__user_id, NULL, :__now, :__now FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.id = :id AND j.posted_by = :__user_id AND j.created_at = :__now"
       ]
     },
     {
@@ -506,7 +506,7 @@
       "statements": [
         "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, source_url, status, posted_by, created_at) SELECT :__uuid, COALESCE((SELECT id FROM companies WHERE slug = :company_slug), 'company-' || :company_slug), trim(:title), :slug, :description, :location, :location_type, :salary_min, :salary_max, :salary_currency, :employment_type, :category, :experience_level, :__now, 'community', :source_url, 'active', :__user_id, :__now WHERE length(:source_url) <= 2048 AND length(:source_host) BETWEEN 4 AND 253 AND :source_host NOT GLOB '*[^a-z0-9.-]*' AND :source_host GLOB '*[a-z0-9].[a-z]*' AND (:source_url = 'https://' || :source_host OR substr(:source_url, 1, length(:source_host) + 9) = 'https://' || :source_host || '/') AND instr('.' || :source_host || '.', '.seek.') = 0 AND instr('.' || :source_host || '.', '.linkedin.') = 0 AND instr('.' || :source_host || '.', '.lnkd.in.') = 0 AND instr('.' || :source_host || '.', '.indeed.') = 0 AND instr('.' || :source_host || '.', '.glassdoor.') = 0 AND instr('.' || :source_host || '.', '.jora.') = 0 AND instr('.' || :source_host || '.', '.careerone.') = 0 AND instr('.' || :source_host || '.', '.adzuna.') = 0 AND instr('.' || :source_host || '.', '.ziprecruiter.') = 0 AND instr('.' || :source_host || '.', '.simplyhired.') = 0 AND instr('.' || :source_host || '.', '.careerjet.') = 0 AND instr('.' || :source_host || '.', '.jooble.') = 0 AND instr('.' || :source_host || '.', '.gotjob.') = 0 AND instr('.' || :source_host || '.', '.monster.') = 0 AND instr('.' || :source_host || '.', '.talent.com.') = 0 AND instr('.' || :source_host || '.', '.proappstore.online.') = 0 AND NOT EXISTS (SELECT 1 FROM jobs WHERE source_url = :source_url AND status = 'active') AND length(trim(:title)) BETWEEN 1 AND 200 AND length(trim(:description)) BETWEEN 1 AND 20000 AND length(trim(:category)) > 0 AND length(trim(:company_name)) BETWEEN 1 AND 120 AND :slug GLOB '[a-z0-9]*' AND :slug NOT GLOB '*[^a-z0-9-]*' AND length(:slug) <= 120 AND :company_slug GLOB '[a-z0-9]*' AND :company_slug NOT GLOB '*[^a-z0-9-]*' AND length(:company_slug) <= 120 AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max) AND :country GLOB '[A-Z][A-Z]' AND (:tags IS NULL OR (json_valid(:tags) AND json_type(:tags) = 'array' AND json_array_length(:tags) <= 12 AND NOT EXISTS (SELECT 1 FROM json_each(:tags) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 30 OR value GLOB '*[^a-z0-9 +#./-]*')))",
         "INSERT INTO companies (id, name, slug, logo_url, description, website, location, industry, size, owner_user_id, country, created_at) SELECT 'company-' || :company_slug, trim(:company_name), :company_slug, NULL, NULL, :company_website, :location, NULL, NULL, NULL, :country, :__now WHERE EXISTS (SELECT 1 FROM jobs WHERE company_id = 'company-' || :company_slug AND source_url = :source_url AND posted_by = :__user_id AND created_at = :__now) AND NOT EXISTS (SELECT 1 FROM companies WHERE slug = :company_slug OR id = 'company-' || :company_slug)",
-        "INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, location_type, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT 'lead-' || j.id, :source_url, 'company', :source_url, j.title, trim(:company_name), :company_slug, :country, j.location, j.category, j.location_type, j.employment_type, j.experience_level, j.salary_min, j.salary_max, COALESCE(:tags, '[]'), :__now, 'published', NULL, j.id, :__user_id, :__now, :__now, :__now FROM jobs j WHERE j.source_url = :source_url AND j.posted_by = :__user_id AND j.created_at = :__now AND j.status = 'active'"
+        "INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, work_mode, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT 'lead-' || j.id, :source_url, 'company', :source_url, j.title, trim(:company_name), :company_slug, :country, j.location, j.category, j.location_type, j.employment_type, j.experience_level, j.salary_min, j.salary_max, COALESCE(:tags, '[]'), :__now, 'published', NULL, j.id, :__user_id, :__now, :__now, :__now FROM jobs j WHERE j.source_url = :source_url AND j.posted_by = :__user_id AND j.created_at = :__now AND j.status = 'active'"
       ],
       "params": {
         "source_url": {
@@ -908,7 +908,7 @@
       "name": "submit_lead",
       "description": "Record a job posting you saw (e.g. in a SEEK/LinkedIn/Indeed alert) as a lead. Leads are never shown as applyable jobs until someone validates them with publish_lead (original company/ATS posting). source_url is where it was seen (unique: re-submitting it changes nothing); the same company + title + country seen in the last 60 days is stored as status 'duplicate'. tags is a JSON array of up to 12 lowercase skills, e.g. [\"python\",\"aws\"]. Leads also feed the market-research stats.",
       "operation": "execute",
-      "sql": "INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, location_type, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT :__uuid, :source_url, :source_board, NULL, trim(:title), trim(:company_name), :company_slug, :country, :location, :category, :location_type, :employment_type, :experience_level, :salary_min, :salary_max, COALESCE(:tags, '[]'), COALESCE(:seen_at, :__now), CASE WHEN EXISTS (SELECT 1 FROM leads WHERE company_slug = :company_slug AND lower(title) = lower(trim(:title)) AND country = :country AND status IN ('new', 'published') AND seen_at >= COALESCE(:seen_at, :__now) - 5184000000) THEN 'duplicate' ELSE 'new' END, (SELECT id FROM leads WHERE company_slug = :company_slug AND lower(title) = lower(trim(:title)) AND country = :country AND status IN ('new', 'published') AND seen_at >= COALESCE(:seen_at, :__now) - 5184000000 ORDER BY created_at LIMIT 1), NULL, :__user_id, NULL, :__now, :__now WHERE (substr(:source_url, 1, 8) = 'https://' OR substr(:source_url, 1, 7) = 'http://') AND length(:source_url) BETWEEN 12 AND 2048 AND (:source_board IS NULL OR (length(:source_board) <= 40 AND :source_board NOT GLOB '*[^a-z0-9.-]*')) AND length(trim(:title)) BETWEEN 1 AND 200 AND length(trim(:company_name)) BETWEEN 1 AND 120 AND :company_slug GLOB '[a-z0-9]*' AND :company_slug NOT GLOB '*[^a-z0-9-]*' AND length(:company_slug) <= 120 AND :country GLOB '[A-Z][A-Z]' AND (:location IS NULL OR length(:location) <= 120) AND (:category IS NULL OR :category IN ('Engineering', 'Design', 'Marketing', 'Sales', 'Operations', 'Finance', 'HR', 'Legal', 'Other')) AND (:location_type IS NULL OR :location_type IN ('remote', 'hybrid', 'onsite')) AND (:employment_type IS NULL OR :employment_type IN ('full-time', 'part-time', 'contract', 'casual')) AND (:experience_level IS NULL OR :experience_level IN ('entry', 'mid', 'senior', 'lead', 'staff')) AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max) AND (:tags IS NULL OR (json_valid(:tags) AND json_type(:tags) = 'array' AND json_array_length(:tags) <= 12 AND NOT EXISTS (SELECT 1 FROM json_each(:tags) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 30 OR value GLOB '*[^a-z0-9 +#./-]*')))",
+      "sql": "INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, work_mode, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT :__uuid, :source_url, :source_board, NULL, trim(:title), trim(:company_name), :company_slug, :country, :location, :category, :location_type, :employment_type, :experience_level, :salary_min, :salary_max, COALESCE(:tags, '[]'), COALESCE(:seen_at, :__now), CASE WHEN EXISTS (SELECT 1 FROM leads WHERE company_slug = :company_slug AND lower(title) = lower(trim(:title)) AND country = :country AND status IN ('new', 'published') AND seen_at >= COALESCE(:seen_at, :__now) - 5184000000) THEN 'duplicate' ELSE 'new' END, (SELECT id FROM leads WHERE company_slug = :company_slug AND lower(title) = lower(trim(:title)) AND country = :country AND status IN ('new', 'published') AND seen_at >= COALESCE(:seen_at, :__now) - 5184000000 ORDER BY created_at LIMIT 1), NULL, :__user_id, NULL, :__now, :__now WHERE (substr(:source_url, 1, 8) = 'https://' OR substr(:source_url, 1, 7) = 'http://') AND length(:source_url) BETWEEN 12 AND 2048 AND (:source_board IS NULL OR (length(:source_board) <= 40 AND :source_board NOT GLOB '*[^a-z0-9.-]*')) AND length(trim(:title)) BETWEEN 1 AND 200 AND length(trim(:company_name)) BETWEEN 1 AND 120 AND :company_slug GLOB '[a-z0-9]*' AND :company_slug NOT GLOB '*[^a-z0-9-]*' AND length(:company_slug) <= 120 AND :country GLOB '[A-Z][A-Z]' AND (:location IS NULL OR length(:location) <= 120) AND (:category IS NULL OR :category IN ('Engineering', 'Design', 'Marketing', 'Sales', 'Operations', 'Finance', 'HR', 'Legal', 'Other')) AND (:location_type IS NULL OR :location_type IN ('remote', 'hybrid', 'onsite')) AND (:employment_type IS NULL OR :employment_type IN ('full-time', 'part-time', 'contract', 'casual')) AND (:experience_level IS NULL OR :experience_level IN ('entry', 'mid', 'senior', 'lead', 'staff')) AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max) AND (:tags IS NULL OR (json_valid(:tags) AND json_type(:tags) = 'array' AND json_array_length(:tags) <= 12 AND NOT EXISTS (SELECT 1 FROM json_each(:tags) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 30 OR value GLOB '*[^a-z0-9 +#./-]*')))",
       "params": {
         "source_url": {
           "type": "string"
@@ -974,7 +974,7 @@
       "name": "submit_leads",
       "description": "Bulk submit_lead: leads is a JSON array of up to 50 objects with the same fields as submit_lead (tags as a JSON array, seen_at as epoch milliseconds). Same validation and dedupe rules per element; invalid or already-known elements are skipped. meta.changes is how many were stored. For agents/importers such as a Gmail job-alert scout.",
       "operation": "execute",
-      "sql": "INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, location_type, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT 'lead-' || lower(hex(randomblob(16))), e.source_url, e.source_board, NULL, trim(e.title), trim(e.company_name), e.company_slug, e.country, e.location, e.category, e.location_type, e.employment_type, e.experience_level, e.salary_min, e.salary_max, COALESCE(e.tags, '[]'), COALESCE(e.seen_at, :__now), CASE WHEN EXISTS (SELECT 1 FROM leads WHERE company_slug = e.company_slug AND lower(title) = lower(trim(e.title)) AND country = e.country AND status IN ('new', 'published') AND seen_at >= COALESCE(e.seen_at, :__now) - 5184000000) THEN 'duplicate' ELSE 'new' END, (SELECT id FROM leads WHERE company_slug = e.company_slug AND lower(title) = lower(trim(e.title)) AND country = e.country AND status IN ('new', 'published') AND seen_at >= COALESCE(e.seen_at, :__now) - 5184000000 ORDER BY created_at LIMIT 1), NULL, :__user_id, NULL, :__now, :__now FROM (SELECT json_extract(value, '$.source_url') AS source_url, json_extract(value, '$.source_board') AS source_board, json_extract(value, '$.title') AS title, json_extract(value, '$.company_name') AS company_name, json_extract(value, '$.company_slug') AS company_slug, COALESCE(json_extract(value, '$.country'), 'AU') AS country, json_extract(value, '$.location') AS location, json_extract(value, '$.category') AS category, json_extract(value, '$.location_type') AS location_type, json_extract(value, '$.employment_type') AS employment_type, json_extract(value, '$.experience_level') AS experience_level, json_extract(value, '$.salary_min') AS salary_min, json_extract(value, '$.salary_max') AS salary_max, CASE WHEN json_type(value, '$.tags') = 'array' THEN json_extract(value, '$.tags') END AS tags, json_extract(value, '$.seen_at') AS seen_at FROM json_each(:leads)) e WHERE json_valid(:leads) AND json_type(:leads) = 'array' AND json_array_length(:leads) <= 50 AND (e.seen_at IS NULL OR (typeof(e.seen_at) = 'integer' AND e.seen_at BETWEEN 1000000000000 AND :__now + 300000)) AND (substr(e.source_url, 1, 8) = 'https://' OR substr(e.source_url, 1, 7) = 'http://') AND length(e.source_url) BETWEEN 12 AND 2048 AND (e.source_board IS NULL OR (length(e.source_board) <= 40 AND e.source_board NOT GLOB '*[^a-z0-9.-]*')) AND length(trim(e.title)) BETWEEN 1 AND 200 AND length(trim(e.company_name)) BETWEEN 1 AND 120 AND e.company_slug GLOB '[a-z0-9]*' AND e.company_slug NOT GLOB '*[^a-z0-9-]*' AND length(e.company_slug) <= 120 AND e.country GLOB '[A-Z][A-Z]' AND (e.location IS NULL OR length(e.location) <= 120) AND (e.category IS NULL OR e.category IN ('Engineering', 'Design', 'Marketing', 'Sales', 'Operations', 'Finance', 'HR', 'Legal', 'Other')) AND (e.location_type IS NULL OR e.location_type IN ('remote', 'hybrid', 'onsite')) AND (e.employment_type IS NULL OR e.employment_type IN ('full-time', 'part-time', 'contract', 'casual')) AND (e.experience_level IS NULL OR e.experience_level IN ('entry', 'mid', 'senior', 'lead', 'staff')) AND (e.salary_min IS NULL OR e.salary_min >= 0) AND (e.salary_max IS NULL OR e.salary_max >= 0) AND (e.salary_min IS NULL OR e.salary_max IS NULL OR e.salary_min <= e.salary_max) AND (e.tags IS NULL OR (json_valid(e.tags) AND json_type(e.tags) = 'array' AND json_array_length(e.tags) <= 12 AND NOT EXISTS (SELECT 1 FROM json_each(e.tags) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 30 OR value GLOB '*[^a-z0-9 +#./-]*')))",
+      "sql": "INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, work_mode, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT 'lead-' || lower(hex(randomblob(16))), e.source_url, e.source_board, NULL, trim(e.title), trim(e.company_name), e.company_slug, e.country, e.location, e.category, e.location_type, e.employment_type, e.experience_level, e.salary_min, e.salary_max, COALESCE(e.tags, '[]'), COALESCE(e.seen_at, :__now), CASE WHEN EXISTS (SELECT 1 FROM leads WHERE company_slug = e.company_slug AND lower(title) = lower(trim(e.title)) AND country = e.country AND status IN ('new', 'published') AND seen_at >= COALESCE(e.seen_at, :__now) - 5184000000) THEN 'duplicate' ELSE 'new' END, (SELECT id FROM leads WHERE company_slug = e.company_slug AND lower(title) = lower(trim(e.title)) AND country = e.country AND status IN ('new', 'published') AND seen_at >= COALESCE(e.seen_at, :__now) - 5184000000 ORDER BY created_at LIMIT 1), NULL, :__user_id, NULL, :__now, :__now FROM (SELECT json_extract(value, '$.source_url') AS source_url, json_extract(value, '$.source_board') AS source_board, json_extract(value, '$.title') AS title, json_extract(value, '$.company_name') AS company_name, json_extract(value, '$.company_slug') AS company_slug, COALESCE(json_extract(value, '$.country'), 'AU') AS country, json_extract(value, '$.location') AS location, json_extract(value, '$.category') AS category, json_extract(value, '$.location_type') AS location_type, json_extract(value, '$.employment_type') AS employment_type, json_extract(value, '$.experience_level') AS experience_level, json_extract(value, '$.salary_min') AS salary_min, json_extract(value, '$.salary_max') AS salary_max, CASE WHEN json_type(value, '$.tags') = 'array' THEN json_extract(value, '$.tags') END AS tags, json_extract(value, '$.seen_at') AS seen_at FROM json_each(:leads)) e WHERE json_valid(:leads) AND json_type(:leads) = 'array' AND json_array_length(:leads) <= 50 AND (e.seen_at IS NULL OR (typeof(e.seen_at) = 'integer' AND e.seen_at BETWEEN 1000000000000 AND :__now + 300000)) AND (substr(e.source_url, 1, 8) = 'https://' OR substr(e.source_url, 1, 7) = 'http://') AND length(e.source_url) BETWEEN 12 AND 2048 AND (e.source_board IS NULL OR (length(e.source_board) <= 40 AND e.source_board NOT GLOB '*[^a-z0-9.-]*')) AND length(trim(e.title)) BETWEEN 1 AND 200 AND length(trim(e.company_name)) BETWEEN 1 AND 120 AND e.company_slug GLOB '[a-z0-9]*' AND e.company_slug NOT GLOB '*[^a-z0-9-]*' AND length(e.company_slug) <= 120 AND e.country GLOB '[A-Z][A-Z]' AND (e.location IS NULL OR length(e.location) <= 120) AND (e.category IS NULL OR e.category IN ('Engineering', 'Design', 'Marketing', 'Sales', 'Operations', 'Finance', 'HR', 'Legal', 'Other')) AND (e.location_type IS NULL OR e.location_type IN ('remote', 'hybrid', 'onsite')) AND (e.employment_type IS NULL OR e.employment_type IN ('full-time', 'part-time', 'contract', 'casual')) AND (e.experience_level IS NULL OR e.experience_level IN ('entry', 'mid', 'senior', 'lead', 'staff')) AND (e.salary_min IS NULL OR e.salary_min >= 0) AND (e.salary_max IS NULL OR e.salary_max >= 0) AND (e.salary_min IS NULL OR e.salary_max IS NULL OR e.salary_min <= e.salary_max) AND (e.tags IS NULL OR (json_valid(e.tags) AND json_type(e.tags) = 'array' AND json_array_length(e.tags) <= 12 AND NOT EXISTS (SELECT 1 FROM json_each(e.tags) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 30 OR value GLOB '*[^a-z0-9 +#./-]*')))",
       "params": {
         "leads": {
           "type": "string"
@@ -987,7 +987,7 @@
       "description": "Validate a 'new' lead and publish it as a job: original_url must be the ORIGINAL posting on the company's careers site or its ATS (same rule as share_job: https, host = source_host, job boards rejected), still live. Creates the job (and company when new) from the lead, optional fields override the lead's, and marks the lead 'published'. Anyone signed in may publish any new lead; a lead publishes once.",
       "operation": "batch",
       "statements": [
-        "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, source_url, status, posted_by, created_at) SELECT 'job-' || l.id, COALESCE((SELECT id FROM companies WHERE slug = l.company_slug), 'company-' || l.company_slug), l.title, :slug, :description, COALESCE(:location, l.location), COALESCE(:location_type, l.location_type, 'onsite'), COALESCE(:salary_min, l.salary_min), COALESCE(:salary_max, l.salary_max), :salary_currency, COALESCE(:employment_type, l.employment_type, 'full-time'), COALESCE(:category, l.category, 'Other'), COALESCE(:experience_level, l.experience_level, 'mid'), :__now, 'community', :original_url, 'active', :__user_id, :__now FROM leads l WHERE l.id = :lead_id AND l.status = 'new' AND length(:original_url) <= 2048 AND length(:source_host) BETWEEN 4 AND 253 AND :source_host NOT GLOB '*[^a-z0-9.-]*' AND :source_host GLOB '*[a-z0-9].[a-z]*' AND (:original_url = 'https://' || :source_host OR substr(:original_url, 1, length(:source_host) + 9) = 'https://' || :source_host || '/') AND instr('.' || :source_host || '.', '.seek.') = 0 AND instr('.' || :source_host || '.', '.linkedin.') = 0 AND instr('.' || :source_host || '.', '.lnkd.in.') = 0 AND instr('.' || :source_host || '.', '.indeed.') = 0 AND instr('.' || :source_host || '.', '.glassdoor.') = 0 AND instr('.' || :source_host || '.', '.jora.') = 0 AND instr('.' || :source_host || '.', '.careerone.') = 0 AND instr('.' || :source_host || '.', '.adzuna.') = 0 AND instr('.' || :source_host || '.', '.ziprecruiter.') = 0 AND instr('.' || :source_host || '.', '.simplyhired.') = 0 AND instr('.' || :source_host || '.', '.careerjet.') = 0 AND instr('.' || :source_host || '.', '.jooble.') = 0 AND instr('.' || :source_host || '.', '.gotjob.') = 0 AND instr('.' || :source_host || '.', '.monster.') = 0 AND instr('.' || :source_host || '.', '.talent.com.') = 0 AND instr('.' || :source_host || '.', '.proappstore.online.') = 0 AND NOT EXISTS (SELECT 1 FROM jobs WHERE source_url = :original_url AND status = 'active') AND NOT EXISTS (SELECT 1 FROM jobs WHERE id = 'job-' || l.id) AND length(trim(:description)) BETWEEN 1 AND 20000 AND :slug GLOB '[a-z0-9]*' AND :slug NOT GLOB '*[^a-z0-9-]*' AND length(:slug) <= 120 AND (:category IS NULL OR :category IN ('Engineering', 'Design', 'Marketing', 'Sales', 'Operations', 'Finance', 'HR', 'Legal', 'Other')) AND (:location_type IS NULL OR :location_type IN ('remote', 'hybrid', 'onsite')) AND (:employment_type IS NULL OR :employment_type IN ('full-time', 'part-time', 'contract', 'casual')) AND (:experience_level IS NULL OR :experience_level IN ('entry', 'mid', 'senior', 'lead', 'staff')) AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max) AND (:location IS NULL OR length(:location) <= 120)",
+        "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, source_url, status, posted_by, created_at) SELECT 'job-' || l.id, COALESCE((SELECT id FROM companies WHERE slug = l.company_slug), 'company-' || l.company_slug), l.title, :slug, :description, COALESCE(:location, l.location), COALESCE(:location_type, l.work_mode, 'onsite'), COALESCE(:salary_min, l.salary_min), COALESCE(:salary_max, l.salary_max), :salary_currency, COALESCE(:employment_type, l.employment_type, 'full-time'), COALESCE(:category, l.category, 'Other'), COALESCE(:experience_level, l.experience_level, 'mid'), :__now, 'community', :original_url, 'active', :__user_id, :__now FROM leads l WHERE l.id = :lead_id AND l.status = 'new' AND length(:original_url) <= 2048 AND length(:source_host) BETWEEN 4 AND 253 AND :source_host NOT GLOB '*[^a-z0-9.-]*' AND :source_host GLOB '*[a-z0-9].[a-z]*' AND (:original_url = 'https://' || :source_host OR substr(:original_url, 1, length(:source_host) + 9) = 'https://' || :source_host || '/') AND instr('.' || :source_host || '.', '.seek.') = 0 AND instr('.' || :source_host || '.', '.linkedin.') = 0 AND instr('.' || :source_host || '.', '.lnkd.in.') = 0 AND instr('.' || :source_host || '.', '.indeed.') = 0 AND instr('.' || :source_host || '.', '.glassdoor.') = 0 AND instr('.' || :source_host || '.', '.jora.') = 0 AND instr('.' || :source_host || '.', '.careerone.') = 0 AND instr('.' || :source_host || '.', '.adzuna.') = 0 AND instr('.' || :source_host || '.', '.ziprecruiter.') = 0 AND instr('.' || :source_host || '.', '.simplyhired.') = 0 AND instr('.' || :source_host || '.', '.careerjet.') = 0 AND instr('.' || :source_host || '.', '.jooble.') = 0 AND instr('.' || :source_host || '.', '.gotjob.') = 0 AND instr('.' || :source_host || '.', '.monster.') = 0 AND instr('.' || :source_host || '.', '.talent.com.') = 0 AND instr('.' || :source_host || '.', '.proappstore.online.') = 0 AND NOT EXISTS (SELECT 1 FROM jobs WHERE source_url = :original_url AND status = 'active') AND NOT EXISTS (SELECT 1 FROM jobs WHERE id = 'job-' || l.id) AND length(trim(:description)) BETWEEN 1 AND 20000 AND :slug GLOB '[a-z0-9]*' AND :slug NOT GLOB '*[^a-z0-9-]*' AND length(:slug) <= 120 AND (:category IS NULL OR :category IN ('Engineering', 'Design', 'Marketing', 'Sales', 'Operations', 'Finance', 'HR', 'Legal', 'Other')) AND (:location_type IS NULL OR :location_type IN ('remote', 'hybrid', 'onsite')) AND (:employment_type IS NULL OR :employment_type IN ('full-time', 'part-time', 'contract', 'casual')) AND (:experience_level IS NULL OR :experience_level IN ('entry', 'mid', 'senior', 'lead', 'staff')) AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max) AND (:location IS NULL OR length(:location) <= 120)",
         "INSERT INTO companies (id, name, slug, logo_url, description, website, location, industry, size, owner_user_id, country, created_at) SELECT 'company-' || l.company_slug, l.company_name, l.company_slug, NULL, NULL, :company_website, l.location, NULL, NULL, NULL, l.country, :__now FROM leads l WHERE l.id = :lead_id AND EXISTS (SELECT 1 FROM jobs WHERE id = 'job-' || l.id AND posted_by = :__user_id AND created_at = :__now) AND NOT EXISTS (SELECT 1 FROM companies WHERE slug = l.company_slug OR id = 'company-' || l.company_slug)",
         "UPDATE leads SET status = 'published', original_url = :original_url, job_id = 'job-' || id, status_reason = NULL, checked_at = :__now, updated_at = :__now WHERE id = :lead_id AND status = 'new' AND EXISTS (SELECT 1 FROM jobs WHERE id = 'job-' || :lead_id AND posted_by = :__user_id AND created_at = :__now)"
       ],
@@ -1190,6 +1190,264 @@
           "reason": "App owners and appointed moderators may mark one lead rejected by ID and expected status."
         }
       }
+    },
+    {
+      "name": "research_countries",
+      "description": "Market research (signed-in): Countries with observed postings and their counts. Aggregates and posting metadata only; never submitter, poster or applicant identity.",
+      "operation": "query",
+      "sql": "SELECT l.country, COUNT(*) AS postings FROM leads l WHERE l.status NOT IN ('duplicate', 'rejected') GROUP BY l.country ORDER BY postings DESC LIMIT 50",
+      "params": {},
+      "requires_auth": true,
+      "auth": {
+        "caller_unscoped": {
+          "reason": "Aggregate job-market statistics over the shared postings ledger (posting metadata only, no per-user rows)."
+        }
+      }
+    },
+    {
+      "name": "research_summary",
+      "description": "Market research (signed-in): Headline numbers for a country (optionally one employer) since a time: postings, employers, listed, unvalidated, unavailable, first/last seen. Aggregates and posting metadata only; never submitter, poster or applicant identity.",
+      "operation": "query",
+      "sql": "SELECT COUNT(*) AS postings, COUNT(DISTINCT l.company_slug) AS employers, SUM(l.status = 'published') AS listed, SUM(l.status = 'new') AS unvalidated, SUM(l.status = 'unavailable') AS unavailable, MIN(l.seen_at) AS first_seen, MAX(l.seen_at) AS last_seen FROM leads l WHERE l.country = :country AND l.status NOT IN ('duplicate', 'rejected') AND l.seen_at >= :since AND (:company_slug IS NULL OR l.company_slug = :company_slug) LIMIT 1",
+      "params": {
+        "country": {
+          "type": "string",
+          "optional": true,
+          "default": "AU"
+        },
+        "since": {
+          "type": "integer",
+          "optional": true,
+          "default": 0
+        },
+        "company_slug": {
+          "type": "string",
+          "optional": true
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "caller_unscoped": {
+          "reason": "Aggregate job-market statistics over the shared postings ledger (posting metadata only, no per-user rows)."
+        }
+      }
+    },
+    {
+      "name": "research_weekly",
+      "description": "Market research (signed-in): Postings and distinct employers per week (week = floor(epoch ms / 7 days)), newest first, up to 52 weeks. Aggregates and posting metadata only; never submitter, poster or applicant identity.",
+      "operation": "query",
+      "sql": "SELECT l.seen_at / 604800000 AS week, COUNT(*) AS postings, COUNT(DISTINCT l.company_slug) AS employers FROM leads l WHERE l.country = :country AND l.status NOT IN ('duplicate', 'rejected') AND l.seen_at >= :since AND (:company_slug IS NULL OR l.company_slug = :company_slug) GROUP BY week ORDER BY week DESC LIMIT 52",
+      "params": {
+        "country": {
+          "type": "string",
+          "optional": true,
+          "default": "AU"
+        },
+        "since": {
+          "type": "integer",
+          "optional": true,
+          "default": 0
+        },
+        "company_slug": {
+          "type": "string",
+          "optional": true
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "caller_unscoped": {
+          "reason": "Aggregate job-market statistics over the shared postings ledger (posting metadata only, no per-user rows)."
+        }
+      }
+    },
+    {
+      "name": "research_facets",
+      "description": "Market research (signed-in): Posting counts grouped by category, work mode, contract type and seniority, with salary range where stated. Aggregates and posting metadata only; never submitter, poster or applicant identity.",
+      "operation": "query",
+      "sql": "SELECT l.category, l.work_mode, l.employment_type AS contract_type, l.experience_level AS seniority, COUNT(*) AS postings, MIN(l.salary_min) AS salary_floor, MAX(l.salary_max) AS salary_ceiling, COUNT(l.salary_min) AS with_salary FROM leads l WHERE l.country = :country AND l.status NOT IN ('duplicate', 'rejected') AND l.seen_at >= :since AND (:company_slug IS NULL OR l.company_slug = :company_slug) GROUP BY l.category, l.work_mode, l.employment_type, l.experience_level ORDER BY postings DESC LIMIT 500",
+      "params": {
+        "country": {
+          "type": "string",
+          "optional": true,
+          "default": "AU"
+        },
+        "since": {
+          "type": "integer",
+          "optional": true,
+          "default": 0
+        },
+        "company_slug": {
+          "type": "string",
+          "optional": true
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "caller_unscoped": {
+          "reason": "Aggregate job-market statistics over the shared postings ledger (posting metadata only, no per-user rows)."
+        }
+      }
+    },
+    {
+      "name": "research_tags",
+      "description": "Market research (signed-in): Most frequent skill/keyword tags across postings. Aggregates and posting metadata only; never submitter, poster or applicant identity.",
+      "operation": "query",
+      "sql": "SELECT t.value AS tag, COUNT(*) AS postings FROM leads l, json_each(l.tags) t WHERE l.country = :country AND l.status NOT IN ('duplicate', 'rejected') AND l.seen_at >= :since AND (:company_slug IS NULL OR l.company_slug = :company_slug) GROUP BY t.value ORDER BY postings DESC LIMIT 40",
+      "params": {
+        "country": {
+          "type": "string",
+          "optional": true,
+          "default": "AU"
+        },
+        "since": {
+          "type": "integer",
+          "optional": true,
+          "default": 0
+        },
+        "company_slug": {
+          "type": "string",
+          "optional": true
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "caller_unscoped": {
+          "reason": "Aggregate job-market statistics over the shared postings ledger (posting metadata only, no per-user rows)."
+        }
+      }
+    },
+    {
+      "name": "research_employers",
+      "description": "Market research (signed-in): Employer directory for a country: every employer seen, with postings, listed jobs, last seen and most frequent category; searchable, paged. Aggregates and posting metadata only; never submitter, poster or applicant identity.",
+      "operation": "query",
+      "sql": "SELECT l.company_slug, MAX(l.company_name) AS company_name, COUNT(*) AS postings, SUM(l.status = 'published') AS listed, MAX(l.seen_at) AS last_seen, (SELECT l2.category FROM leads l2 WHERE l2.company_slug = l.company_slug AND l2.country = l.country AND l2.status NOT IN ('duplicate', 'rejected') GROUP BY l2.category ORDER BY COUNT(*) DESC LIMIT 1) AS top_category FROM leads l WHERE l.country = :country AND l.status NOT IN ('duplicate', 'rejected') AND l.seen_at >= :since AND (:q IS NULL OR l.company_name LIKE '%' || :q || '%') AND (:category IS NULL OR l.category = :category) GROUP BY l.company_slug ORDER BY postings DESC, last_seen DESC LIMIT :limit OFFSET :offset",
+      "params": {
+        "country": {
+          "type": "string",
+          "optional": true,
+          "default": "AU"
+        },
+        "since": {
+          "type": "integer",
+          "optional": true,
+          "default": 0
+        },
+        "q": {
+          "type": "string",
+          "optional": true
+        },
+        "category": {
+          "type": "string",
+          "optional": true
+        },
+        "limit": {
+          "type": "integer",
+          "optional": true,
+          "default": 50,
+          "max": 200
+        },
+        "offset": {
+          "type": "integer",
+          "optional": true,
+          "default": 0
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "caller_unscoped": {
+          "reason": "Aggregate job-market statistics over the shared postings ledger (posting metadata only, no per-user rows)."
+        }
+      }
+    },
+    {
+      "name": "research_employer_roles",
+      "description": "Market research (signed-in): An employer's observed roles, newest first: title, category, seniority, status, when seen, and the listed job id when published. Aggregates and posting metadata only; never submitter, poster or applicant identity.",
+      "operation": "query",
+      "sql": "SELECT l.company_name, l.title, l.category, l.experience_level AS seniority, l.status, l.seen_at, CASE WHEN l.status = 'published' THEN l.job_id END AS job_id FROM leads l WHERE l.company_slug = :company_slug AND l.country = :country AND l.status NOT IN ('duplicate', 'rejected') ORDER BY l.seen_at DESC LIMIT 100",
+      "params": {
+        "company_slug": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string",
+          "optional": true,
+          "default": "AU"
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "caller_unscoped": {
+          "reason": "Aggregate job-market statistics over the shared postings ledger (posting metadata only, no per-user rows)."
+        }
+      }
+    },
+    {
+      "name": "get_my_profile",
+      "description": "The caller's own job-search profile and preferences.",
+      "operation": "query",
+      "sql": "SELECT display_name, country, locations, categories, work_modes, employment_types, seniorities, tags, min_salary, updated_at FROM profiles WHERE user_id = :__user_id LIMIT 1",
+      "params": {},
+      "requires_auth": true
+    },
+    {
+      "name": "save_my_profile",
+      "description": "Create or replace the caller's job-search profile. Arrays are JSON arrays of strings; categories, work_modes, employment_types and seniorities must use the app's values; country is ISO-2.",
+      "operation": "execute",
+      "sql": "INSERT INTO profiles (user_id, display_name, country, locations, categories, work_modes, employment_types, seniorities, tags, min_salary, updated_at) SELECT :__user_id, NULLIF(trim(:display_name), ''), :country, :locations, :categories, :work_modes, :employment_types, :seniorities, :tags, :min_salary, :__now WHERE (:display_name IS NULL OR length(:display_name) <= 60) AND :country GLOB '[A-Z][A-Z]' AND (json_valid(:locations) AND json_type(:locations) = 'array' AND json_array_length(:locations) <= 10 AND NOT EXISTS (SELECT 1 FROM json_each(:locations) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 80)) AND (json_valid(:categories) AND json_type(:categories) = 'array' AND json_array_length(:categories) <= 9 AND NOT EXISTS (SELECT 1 FROM json_each(:categories) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 20)) AND NOT EXISTS (SELECT 1 FROM json_each(:categories) WHERE value NOT IN ('Engineering', 'Design', 'Marketing', 'Sales', 'Operations', 'Finance', 'HR', 'Legal', 'Other')) AND (json_valid(:work_modes) AND json_type(:work_modes) = 'array' AND json_array_length(:work_modes) <= 3 AND NOT EXISTS (SELECT 1 FROM json_each(:work_modes) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 10)) AND NOT EXISTS (SELECT 1 FROM json_each(:work_modes) WHERE value NOT IN ('remote', 'hybrid', 'onsite')) AND (json_valid(:employment_types) AND json_type(:employment_types) = 'array' AND json_array_length(:employment_types) <= 4 AND NOT EXISTS (SELECT 1 FROM json_each(:employment_types) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 10)) AND NOT EXISTS (SELECT 1 FROM json_each(:employment_types) WHERE value NOT IN ('full-time', 'part-time', 'contract', 'casual')) AND (json_valid(:seniorities) AND json_type(:seniorities) = 'array' AND json_array_length(:seniorities) <= 5 AND NOT EXISTS (SELECT 1 FROM json_each(:seniorities) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 10)) AND NOT EXISTS (SELECT 1 FROM json_each(:seniorities) WHERE value NOT IN ('entry', 'mid', 'senior', 'lead', 'staff')) AND (json_valid(:tags) AND json_type(:tags) = 'array' AND json_array_length(:tags) <= 20 AND NOT EXISTS (SELECT 1 FROM json_each(:tags) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 30)) AND NOT EXISTS (SELECT 1 FROM json_each(:tags) WHERE value GLOB '*[^a-z0-9 +#./-]*') AND (:min_salary IS NULL OR :min_salary BETWEEN 0 AND 10000000) ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, country = excluded.country, locations = excluded.locations, categories = excluded.categories, work_modes = excluded.work_modes, employment_types = excluded.employment_types, seniorities = excluded.seniorities, tags = excluded.tags, min_salary = excluded.min_salary, updated_at = excluded.updated_at",
+      "params": {
+        "display_name": {
+          "type": "string",
+          "optional": true
+        },
+        "country": {
+          "type": "string",
+          "optional": true,
+          "default": "AU"
+        },
+        "locations": {
+          "type": "string",
+          "optional": true,
+          "default": "[]"
+        },
+        "categories": {
+          "type": "string",
+          "optional": true,
+          "default": "[]"
+        },
+        "work_modes": {
+          "type": "string",
+          "optional": true,
+          "default": "[]"
+        },
+        "employment_types": {
+          "type": "string",
+          "optional": true,
+          "default": "[]"
+        },
+        "seniorities": {
+          "type": "string",
+          "optional": true,
+          "default": "[]"
+        },
+        "tags": {
+          "type": "string",
+          "optional": true,
+          "default": "[]"
+        },
+        "min_salary": {
+          "type": "integer",
+          "optional": true
+        }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "list_my_matches",
+      "description": "Active jobs matching the caller's saved profile (empty preference lists match everything; remote jobs match any location), newest first.",
+      "operation": "query",
+      "sql": "SELECT j.id, j.company_id, j.title, j.slug, j.description, j.location, j.location_type, j.salary_min, j.salary_max, j.salary_currency, j.employment_type, j.category, j.experience_level, j.posted_at, j.expires_at, j.source, j.source_url, j.status, j.created_at, c.name AS company_name, c.slug AS company_slug, c.logo_url AS company_logo_url, c.location AS company_location FROM profiles p JOIN jobs j ON j.status = 'active' JOIN companies c ON c.id = j.company_id WHERE p.user_id = :__user_id AND c.country = p.country AND (json_array_length(p.categories) = 0 OR j.category IN (SELECT value FROM json_each(p.categories))) AND (json_array_length(p.work_modes) = 0 OR j.location_type IN (SELECT value FROM json_each(p.work_modes))) AND (json_array_length(p.employment_types) = 0 OR j.employment_type IN (SELECT value FROM json_each(p.employment_types))) AND (json_array_length(p.seniorities) = 0 OR j.experience_level IN (SELECT value FROM json_each(p.seniorities))) AND (p.min_salary IS NULL OR COALESCE(j.salary_max, j.salary_min) IS NULL OR COALESCE(j.salary_max, j.salary_min) >= p.min_salary) AND (json_array_length(p.locations) = 0 OR j.location_type = 'remote' OR EXISTS (SELECT 1 FROM json_each(p.locations) x WHERE instr(lower(COALESCE(j.location, '')), lower(x.value)) > 0)) ORDER BY j.posted_at DESC LIMIT 50",
+      "params": {},
+      "requires_auth": true
     }
   ],
   "operator_view": {
@@ -1606,5 +1864,49 @@
         "target": "lead_id"
       }
     ]
-  }
+  },
+  "approved_unscoped": [
+    {
+      "action": "research_countries",
+      "reviewer": "serge-ivo",
+      "date": "2026-11-07",
+      "reason": "Signed-in job-market research (#15): aggregates over the shared postings ledger; posting metadata only, no submitter/poster/applicant identity or contact data."
+    },
+    {
+      "action": "research_summary",
+      "reviewer": "serge-ivo",
+      "date": "2026-11-07",
+      "reason": "Signed-in job-market research (#15): aggregates over the shared postings ledger; posting metadata only, no submitter/poster/applicant identity or contact data."
+    },
+    {
+      "action": "research_weekly",
+      "reviewer": "serge-ivo",
+      "date": "2026-11-07",
+      "reason": "Signed-in job-market research (#15): aggregates over the shared postings ledger; posting metadata only, no submitter/poster/applicant identity or contact data."
+    },
+    {
+      "action": "research_facets",
+      "reviewer": "serge-ivo",
+      "date": "2026-11-07",
+      "reason": "Signed-in job-market research (#15): aggregates over the shared postings ledger; posting metadata only, no submitter/poster/applicant identity or contact data."
+    },
+    {
+      "action": "research_tags",
+      "reviewer": "serge-ivo",
+      "date": "2026-11-07",
+      "reason": "Signed-in job-market research (#15): aggregates over the shared postings ledger; posting metadata only, no submitter/poster/applicant identity or contact data."
+    },
+    {
+      "action": "research_employers",
+      "reviewer": "serge-ivo",
+      "date": "2026-11-07",
+      "reason": "Signed-in job-market research (#15): aggregates over the shared postings ledger; posting metadata only, no submitter/poster/applicant identity or contact data."
+    },
+    {
+      "action": "research_employer_roles",
+      "reviewer": "serge-ivo",
+      "date": "2026-11-07",
+      "reason": "Signed-in job-market research (#15): aggregates over the shared postings ledger; posting metadata only, no submitter/poster/applicant identity or contact data."
+    }
+  ]
 }

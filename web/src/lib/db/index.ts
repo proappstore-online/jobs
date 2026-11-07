@@ -71,3 +71,25 @@ export {
   countUnread,
   type NotificationRow,
 } from './notifications'
+
+export {
+  researchCountries,
+  researchOverview,
+  researchEmployers,
+  researchEmployerRoles,
+  type ResearchFilter,
+  type ResearchSummary,
+  type WeekRow,
+  type FacetRow,
+  type TagRow,
+  type EmployerRow,
+  type RoleRow,
+} from './research'
+
+export {
+  getMyProfile,
+  saveMyProfile,
+  listMyMatches,
+  EMPTY_PROFILE,
+  type Profile,
+} from './profile'

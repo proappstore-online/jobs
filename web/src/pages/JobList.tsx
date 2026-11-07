@@ -6,6 +6,7 @@ import {
   isJobSaved,
   saveJob,
   unsaveJob,
+  listMyMatches,
 } from '../lib/db'
 import type { JobWithCompany, ListJobsOpts } from '../lib/db'
 import { JobCard } from '../components/JobCard'
@@ -40,6 +41,8 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [matchesOnly, setMatchesOnly] = useState(false)
+  const [matches, setMatches] = useState<JobWithCompany[] | null>(null)
 
   // Filters
   const [search, setSearch] = useState('')
@@ -97,6 +100,12 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
         setLoading(false)
       }).catch(() => { if (id === fetchCount.current) { setLoading(false); setError('Could not load jobs. Please retry.'); } })
   }, [buildOpts, user?.id])
+
+  useEffect(() => {
+    if (!matchesOnly || !user) return
+    setMatches(null)
+    listMyMatches().then(setMatches).catch(() => setMatches([]))
+  }, [matchesOnly, user])
 
   async function handleLoadMore() {
     if (!jobs) return
@@ -202,6 +211,26 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
         </div>
       )}
 
+      {user && (
+        <div className="mt-3 flex items-center gap-2" role="group" aria-label="Job list">
+          {[[false, 'All jobs'], [true, 'Matches for you']].map(([on, label]) => (
+            <button key={String(on)} type="button" aria-pressed={matchesOnly === on} onClick={() => setMatchesOnly(on as boolean)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${matchesOnly === on ? 'bg-[var(--ink)] text-[var(--paper)]' : 'border border-[var(--line-strong)] text-[var(--muted)] hover:text-[var(--ink)]'}`}>{label as string}</button>
+          ))}
+        </div>
+      )}
+
+      {matchesOnly && user ? (
+        matches === null ? <p className="mt-4 text-sm text-[var(--muted)]">Finding matches…</p>
+        : matches.length ? (
+          <div className="mt-3 space-y-3">
+            <p className="text-xs text-[var(--muted)]">{matches.length} {matches.length === 1 ? 'job matches' : 'jobs match'} your <a href="#/profile" className="underline">preferences</a></p>
+            {matches.map((job) => (
+              <JobCard key={job.id} job={job} saved={savedSet.has(job.id)} onOpen={() => onOpenJob(job.id)} onToggleSave={() => handleToggleSave(job.id)} onOpenCompany={() => onOpenCompany(job.company_slug)} />
+            ))}
+          </div>
+        ) : <p className="mt-8 text-center text-sm text-[var(--muted)]">No matches yet. <a href="#/profile" className="underline">Set or widen your preferences</a>.</p>
+      ) : <>
       {/* Results count */}
       {!loading && jobs && (
         <p className="mt-4 text-xs text-[var(--muted)]">
@@ -248,6 +277,7 @@ export function JobList({ user, onOpenJob, onOpenCompany }: JobListProps) {
           <p className="text-sm text-[var(--muted)]">No jobs match your search</p>
         </div>
       )}
+      </>}
     </div>
   )
 }
