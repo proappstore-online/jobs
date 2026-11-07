@@ -15,7 +15,7 @@ async function mock(page: Page, signedIn = false, changes = 1) {
       get_my_companies: [company], get_my_jobs: [{ ...job, applicant_count: 1 }], is_company_owner: [{ cnt: 1 }],
       get_job_applicants: [{ user_id: 'candidate', candidate_name: 'Jane Candidate', contact_email: 'jane@example.test', note: 'My message', status: 'applied', applied_at: Date.now() }],
     }
-    await route.fulfill({ json: name === 'apply_to_job' ? { results: [{ meta: { changes } }, { meta: { changes } }] } : name in rows ? { rows: rows[name] } : { meta: { changes } } })
+    await route.fulfill({ json: ['apply_to_job', 'post_job', 'close_job'].includes(name) ? { results: [{ meta: { changes } }, { meta: { changes } }] } : name in rows ? { rows: rows[name] } : { meta: { changes } } })
   })
   return calls
 }

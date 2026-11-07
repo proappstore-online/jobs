@@ -1,4 +1,4 @@
-import { q, changed as x } from '../actions'
+import { q, changed as x, changedBatch } from '../actions'
 import { ensureMigrated, rid } from './core'
 import type { CompanyRow } from './companies'
 
@@ -143,7 +143,7 @@ export async function postJob(userId: string, companyId: string, data: PostJobDa
   const id = rid()
   const slug = `${slugify(data.title)}-${rid().slice(0, 6)}`
 
-  await x('post_job', {
+  await changedBatch('post_job', {
     id,
     company_id: companyId,
     title: data.title,
@@ -170,7 +170,7 @@ export async function updateJob(_userId: string, jobId: string, data: UpdateJobD
 
 export async function closeJob(_userId: string, jobId: string): Promise<void> {
   await ensureMigrated()
-  await x('close_job', { job_id: jobId })
+  await changedBatch('close_job', { job_id: jobId })
 }
 
 export async function getMyJobs(_userId: string): Promise<MyJobRow[]> {

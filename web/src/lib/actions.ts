@@ -38,7 +38,13 @@ export async function publicQuery<T>(name: string, params: Record<string, unknow
   const res = await app.actions.callPublic<{ rows: T[] }>(name, params)
   return res.rows
 }
+const NO_CHANGE = 'No changes saved. Check ownership, listing availability and required fields, then retry.'
 export async function changed(name: string, params: Record<string, unknown>): Promise<void> {
   const meta = await x(name, params)
-  if (meta.changes !== 1) throw new Error('No changes saved. Check ownership, listing availability and required fields, then retry.')
+  if (meta.changes !== 1) throw new Error(NO_CHANGE)
+}
+/** Batch variant: the first statement is the guarded write; later ones keep the leads ledger in step. */
+export async function changedBatch(name: string, params: Record<string, unknown>): Promise<void> {
+  const results = await b(name, params)
+  if (results[0]?.meta.changes !== 1) throw new Error(NO_CHANGE)
 }

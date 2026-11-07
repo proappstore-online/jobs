@@ -448,8 +448,7 @@
     {
       "name": "post_job",
       "description": "Post a job under a company the caller owns. The ownership check is in the SQL: the row only inserts when the caller owns the target company.",
-      "operation": "execute",
-      "sql": "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, status, posted_by, created_at) SELECT :id, :company_id, :title, :slug, :description, :location, :location_type, :salary_min, :salary_max, :salary_currency, :employment_type, :category, :experience_level, :__now, 'employer', 'active', :__user_id, :__now WHERE EXISTS (SELECT 1 FROM companies c WHERE c.id = :company_id AND c.owner_user_id = :__user_id) AND length(trim(:title)) > 0 AND length(trim(:description)) > 0 AND length(trim(:category)) > 0 AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max)",
+      "operation": "batch",
       "params": {
         "id": {
           "type": "string"
@@ -494,15 +493,20 @@
           "type": "string"
         }
       },
-      "requires_auth": true
+      "requires_auth": true,
+      "statements": [
+        "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, status, posted_by, created_at) SELECT :id, :company_id, :title, :slug, :description, :location, :location_type, :salary_min, :salary_max, :salary_currency, :employment_type, :category, :experience_level, :__now, 'employer', 'active', :__user_id, :__now WHERE EXISTS (SELECT 1 FROM companies c WHERE c.id = :company_id AND c.owner_user_id = :__user_id) AND length(trim(:title)) > 0 AND length(trim(:description)) > 0 AND length(trim(:category)) > 0 AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max)",
+        "INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, location_type, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT 'lead-' || j.id, 'https://jobs.proappstore.online/#/job/' || j.id, 'jobs', NULL, j.title, c.name, c.slug, c.country, j.location, j.category, j.location_type, j.employment_type, j.experience_level, j.salary_min, j.salary_max, '[]', :__now, 'published', NULL, j.id, :__user_id, NULL, :__now, :__now FROM jobs j JOIN companies c ON c.id = j.company_id WHERE j.id = :id AND j.posted_by = :__user_id AND j.created_at = :__now"
+      ]
     },
     {
       "name": "share_job",
-      "description": "Share a real job you found or were recommended. source_url must be the ORIGINAL posting on the company's own careers site or its ATS (Greenhouse, Lever, Workday, Ashby, SmartRecruiters...), https only; job boards and aggregators (SEEK, LinkedIn, Indeed, Jora, Glassdoor...) are rejected, so find the source posting first. source_host is the lowercase hostname of source_url. The job attaches to the company with company_slug, or creates it. Slugs are lowercase a-z, 0-9 and hyphens. Rejected or duplicate (same active source_url) submissions change nothing; candidates apply on the original site. The job then appears under get_my_jobs, and the sharer can close it with close_job.",
+      "description": "Share a real job you found or were recommended. source_url must be the ORIGINAL posting on the company's own careers site or its ATS (Greenhouse, Lever, Workday, Ashby, SmartRecruiters...), https only; job boards and aggregators (SEEK, LinkedIn, Indeed, Jora, Glassdoor...) are rejected, so find the source posting first. source_host is the lowercase hostname of source_url. The job attaches to the company with company_slug, or creates it. Slugs are lowercase a-z, 0-9 and hyphens. Rejected or duplicate (same active source_url) submissions change nothing; candidates apply on the original site. country is ISO-2 (default AU); tags is an optional JSON array of lowercase skills. The job is also recorded in the leads ledger (status published) and then appears under get_my_jobs, and the sharer can close it with close_job.",
       "operation": "batch",
       "statements": [
-        "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, source_url, status, posted_by, created_at) SELECT :__uuid, COALESCE((SELECT id FROM companies WHERE slug = :company_slug), 'company-' || :company_slug), trim(:title), :slug, :description, :location, :location_type, :salary_min, :salary_max, :salary_currency, :employment_type, :category, :experience_level, :__now, 'community', :source_url, 'active', :__user_id, :__now WHERE length(:source_url) <= 2048 AND length(:source_host) BETWEEN 4 AND 253 AND :source_host NOT GLOB '*[^a-z0-9.-]*' AND :source_host GLOB '*[a-z0-9].[a-z]*' AND (:source_url = 'https://' || :source_host OR substr(:source_url, 1, length(:source_host) + 9) = 'https://' || :source_host || '/') AND instr('.' || :source_host || '.', '.seek.') = 0 AND instr('.' || :source_host || '.', '.linkedin.') = 0 AND instr('.' || :source_host || '.', '.lnkd.in.') = 0 AND instr('.' || :source_host || '.', '.indeed.') = 0 AND instr('.' || :source_host || '.', '.glassdoor.') = 0 AND instr('.' || :source_host || '.', '.jora.') = 0 AND instr('.' || :source_host || '.', '.careerone.') = 0 AND instr('.' || :source_host || '.', '.adzuna.') = 0 AND instr('.' || :source_host || '.', '.ziprecruiter.') = 0 AND instr('.' || :source_host || '.', '.simplyhired.') = 0 AND instr('.' || :source_host || '.', '.careerjet.') = 0 AND instr('.' || :source_host || '.', '.jooble.') = 0 AND instr('.' || :source_host || '.', '.gotjob.') = 0 AND instr('.' || :source_host || '.', '.monster.') = 0 AND instr('.' || :source_host || '.', '.talent.com.') = 0 AND instr('.' || :source_host || '.', '.proappstore.online.') = 0 AND NOT EXISTS (SELECT 1 FROM jobs WHERE source_url = :source_url AND status = 'active') AND length(trim(:title)) BETWEEN 1 AND 200 AND length(trim(:description)) BETWEEN 1 AND 20000 AND length(trim(:category)) > 0 AND length(trim(:company_name)) BETWEEN 1 AND 120 AND :slug GLOB '[a-z0-9]*' AND :slug NOT GLOB '*[^a-z0-9-]*' AND length(:slug) <= 120 AND :company_slug GLOB '[a-z0-9]*' AND :company_slug NOT GLOB '*[^a-z0-9-]*' AND length(:company_slug) <= 120 AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max)",
-        "INSERT INTO companies (id, name, slug, logo_url, description, website, location, industry, size, owner_user_id, created_at) SELECT 'company-' || :company_slug, trim(:company_name), :company_slug, NULL, NULL, :company_website, :location, NULL, NULL, NULL, :__now WHERE EXISTS (SELECT 1 FROM jobs WHERE company_id = 'company-' || :company_slug AND source_url = :source_url AND posted_by = :__user_id AND created_at = :__now) AND NOT EXISTS (SELECT 1 FROM companies WHERE slug = :company_slug OR id = 'company-' || :company_slug)"
+        "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, source_url, status, posted_by, created_at) SELECT :__uuid, COALESCE((SELECT id FROM companies WHERE slug = :company_slug), 'company-' || :company_slug), trim(:title), :slug, :description, :location, :location_type, :salary_min, :salary_max, :salary_currency, :employment_type, :category, :experience_level, :__now, 'community', :source_url, 'active', :__user_id, :__now WHERE length(:source_url) <= 2048 AND length(:source_host) BETWEEN 4 AND 253 AND :source_host NOT GLOB '*[^a-z0-9.-]*' AND :source_host GLOB '*[a-z0-9].[a-z]*' AND (:source_url = 'https://' || :source_host OR substr(:source_url, 1, length(:source_host) + 9) = 'https://' || :source_host || '/') AND instr('.' || :source_host || '.', '.seek.') = 0 AND instr('.' || :source_host || '.', '.linkedin.') = 0 AND instr('.' || :source_host || '.', '.lnkd.in.') = 0 AND instr('.' || :source_host || '.', '.indeed.') = 0 AND instr('.' || :source_host || '.', '.glassdoor.') = 0 AND instr('.' || :source_host || '.', '.jora.') = 0 AND instr('.' || :source_host || '.', '.careerone.') = 0 AND instr('.' || :source_host || '.', '.adzuna.') = 0 AND instr('.' || :source_host || '.', '.ziprecruiter.') = 0 AND instr('.' || :source_host || '.', '.simplyhired.') = 0 AND instr('.' || :source_host || '.', '.careerjet.') = 0 AND instr('.' || :source_host || '.', '.jooble.') = 0 AND instr('.' || :source_host || '.', '.gotjob.') = 0 AND instr('.' || :source_host || '.', '.monster.') = 0 AND instr('.' || :source_host || '.', '.talent.com.') = 0 AND instr('.' || :source_host || '.', '.proappstore.online.') = 0 AND NOT EXISTS (SELECT 1 FROM jobs WHERE source_url = :source_url AND status = 'active') AND length(trim(:title)) BETWEEN 1 AND 200 AND length(trim(:description)) BETWEEN 1 AND 20000 AND length(trim(:category)) > 0 AND length(trim(:company_name)) BETWEEN 1 AND 120 AND :slug GLOB '[a-z0-9]*' AND :slug NOT GLOB '*[^a-z0-9-]*' AND length(:slug) <= 120 AND :company_slug GLOB '[a-z0-9]*' AND :company_slug NOT GLOB '*[^a-z0-9-]*' AND length(:company_slug) <= 120 AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max) AND :country GLOB '[A-Z][A-Z]' AND (:tags IS NULL OR (json_valid(:tags) AND json_type(:tags) = 'array' AND json_array_length(:tags) <= 12 AND NOT EXISTS (SELECT 1 FROM json_each(:tags) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 30 OR value GLOB '*[^a-z0-9 +#./-]*')))",
+        "INSERT INTO companies (id, name, slug, logo_url, description, website, location, industry, size, owner_user_id, country, created_at) SELECT 'company-' || :company_slug, trim(:company_name), :company_slug, NULL, NULL, :company_website, :location, NULL, NULL, NULL, :country, :__now WHERE EXISTS (SELECT 1 FROM jobs WHERE company_id = 'company-' || :company_slug AND source_url = :source_url AND posted_by = :__user_id AND created_at = :__now) AND NOT EXISTS (SELECT 1 FROM companies WHERE slug = :company_slug OR id = 'company-' || :company_slug)",
+        "INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, location_type, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT 'lead-' || j.id, :source_url, 'company', :source_url, j.title, trim(:company_name), :company_slug, :country, j.location, j.category, j.location_type, j.employment_type, j.experience_level, j.salary_min, j.salary_max, COALESCE(:tags, '[]'), :__now, 'published', NULL, j.id, :__user_id, :__now, :__now, :__now FROM jobs j WHERE j.source_url = :source_url AND j.posted_by = :__user_id AND j.created_at = :__now AND j.status = 'active'"
       ],
       "params": {
         "source_url": {
@@ -564,6 +568,15 @@
           "type": "string",
           "optional": true,
           "default": "mid"
+        },
+        "country": {
+          "type": "string",
+          "optional": true,
+          "default": "AU"
+        },
+        "tags": {
+          "type": "string",
+          "optional": true
         }
       },
       "requires_auth": true
@@ -671,14 +684,17 @@
     {
       "name": "close_job",
       "description": "Close a job the caller posted (guarded by posted_by = caller)",
-      "operation": "execute",
-      "sql": "UPDATE jobs SET status = 'closed' WHERE id = :job_id AND posted_by = :__user_id AND status = 'active'",
+      "operation": "batch",
       "params": {
         "job_id": {
           "type": "string"
         }
       },
-      "requires_auth": true
+      "requires_auth": true,
+      "statements": [
+        "UPDATE jobs SET status = 'closed' WHERE id = :job_id AND posted_by = :__user_id AND status = 'active'",
+        "UPDATE leads SET status = 'unavailable', status_reason = 'Closed by poster', updated_at = :__now WHERE job_id = :job_id AND status = 'published' AND EXISTS (SELECT 1 FROM jobs WHERE id = :job_id AND posted_by = :__user_id AND status = 'closed')"
+      ]
     },
     {
       "name": "get_my_jobs",
@@ -887,6 +903,281 @@
         }
       },
       "requires_auth": true
+    },
+    {
+      "name": "submit_lead",
+      "description": "Record a job posting you saw (e.g. in a SEEK/LinkedIn/Indeed alert) as a lead. Leads are never shown as applyable jobs until someone validates them with publish_lead (original company/ATS posting). source_url is where it was seen (unique: re-submitting it changes nothing); the same company + title + country seen in the last 60 days is stored as status 'duplicate'. tags is a JSON array of up to 12 lowercase skills, e.g. [\"python\",\"aws\"]. Leads also feed the market-research stats.",
+      "operation": "execute",
+      "sql": "INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, location_type, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT :__uuid, :source_url, :source_board, NULL, trim(:title), trim(:company_name), :company_slug, :country, :location, :category, :location_type, :employment_type, :experience_level, :salary_min, :salary_max, COALESCE(:tags, '[]'), COALESCE(:seen_at, :__now), CASE WHEN EXISTS (SELECT 1 FROM leads WHERE company_slug = :company_slug AND lower(title) = lower(trim(:title)) AND country = :country AND status IN ('new', 'published') AND seen_at >= COALESCE(:seen_at, :__now) - 5184000000) THEN 'duplicate' ELSE 'new' END, (SELECT id FROM leads WHERE company_slug = :company_slug AND lower(title) = lower(trim(:title)) AND country = :country AND status IN ('new', 'published') AND seen_at >= COALESCE(:seen_at, :__now) - 5184000000 ORDER BY created_at LIMIT 1), NULL, :__user_id, NULL, :__now, :__now WHERE (substr(:source_url, 1, 8) = 'https://' OR substr(:source_url, 1, 7) = 'http://') AND length(:source_url) BETWEEN 12 AND 2048 AND (:source_board IS NULL OR (length(:source_board) <= 40 AND :source_board NOT GLOB '*[^a-z0-9.-]*')) AND length(trim(:title)) BETWEEN 1 AND 200 AND length(trim(:company_name)) BETWEEN 1 AND 120 AND :company_slug GLOB '[a-z0-9]*' AND :company_slug NOT GLOB '*[^a-z0-9-]*' AND length(:company_slug) <= 120 AND :country GLOB '[A-Z][A-Z]' AND (:location IS NULL OR length(:location) <= 120) AND (:category IS NULL OR :category IN ('Engineering', 'Design', 'Marketing', 'Sales', 'Operations', 'Finance', 'HR', 'Legal', 'Other')) AND (:location_type IS NULL OR :location_type IN ('remote', 'hybrid', 'onsite')) AND (:employment_type IS NULL OR :employment_type IN ('full-time', 'part-time', 'contract', 'casual')) AND (:experience_level IS NULL OR :experience_level IN ('entry', 'mid', 'senior', 'lead', 'staff')) AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max) AND (:tags IS NULL OR (json_valid(:tags) AND json_type(:tags) = 'array' AND json_array_length(:tags) <= 12 AND NOT EXISTS (SELECT 1 FROM json_each(:tags) WHERE type != 'text' OR length(value) NOT BETWEEN 1 AND 30 OR value GLOB '*[^a-z0-9 +#./-]*')))",
+      "params": {
+        "source_url": {
+          "type": "string"
+        },
+        "source_board": {
+          "type": "string",
+          "optional": true
+        },
+        "title": {
+          "type": "string"
+        },
+        "company_name": {
+          "type": "string"
+        },
+        "company_slug": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string",
+          "optional": true,
+          "default": "AU"
+        },
+        "location": {
+          "type": "string",
+          "optional": true
+        },
+        "category": {
+          "type": "string",
+          "optional": true
+        },
+        "location_type": {
+          "type": "string",
+          "optional": true
+        },
+        "employment_type": {
+          "type": "string",
+          "optional": true
+        },
+        "experience_level": {
+          "type": "string",
+          "optional": true
+        },
+        "salary_min": {
+          "type": "integer",
+          "optional": true
+        },
+        "salary_max": {
+          "type": "integer",
+          "optional": true
+        },
+        "tags": {
+          "type": "string",
+          "optional": true
+        },
+        "seen_at": {
+          "type": "timestamp_ms",
+          "optional": true
+        }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "publish_lead",
+      "description": "Validate a 'new' lead and publish it as a job: original_url must be the ORIGINAL posting on the company's careers site or its ATS (same rule as share_job: https, host = source_host, job boards rejected), still live. Creates the job (and company when new) from the lead, optional fields override the lead's, and marks the lead 'published'. Anyone signed in may publish any new lead; a lead publishes once.",
+      "operation": "batch",
+      "statements": [
+        "INSERT INTO jobs (id, company_id, title, slug, description, location, location_type, salary_min, salary_max, salary_currency, employment_type, category, experience_level, posted_at, source, source_url, status, posted_by, created_at) SELECT 'job-' || l.id, COALESCE((SELECT id FROM companies WHERE slug = l.company_slug), 'company-' || l.company_slug), l.title, :slug, :description, COALESCE(:location, l.location), COALESCE(:location_type, l.location_type, 'onsite'), COALESCE(:salary_min, l.salary_min), COALESCE(:salary_max, l.salary_max), :salary_currency, COALESCE(:employment_type, l.employment_type, 'full-time'), COALESCE(:category, l.category, 'Other'), COALESCE(:experience_level, l.experience_level, 'mid'), :__now, 'community', :original_url, 'active', :__user_id, :__now FROM leads l WHERE l.id = :lead_id AND l.status = 'new' AND length(:original_url) <= 2048 AND length(:source_host) BETWEEN 4 AND 253 AND :source_host NOT GLOB '*[^a-z0-9.-]*' AND :source_host GLOB '*[a-z0-9].[a-z]*' AND (:original_url = 'https://' || :source_host OR substr(:original_url, 1, length(:source_host) + 9) = 'https://' || :source_host || '/') AND instr('.' || :source_host || '.', '.seek.') = 0 AND instr('.' || :source_host || '.', '.linkedin.') = 0 AND instr('.' || :source_host || '.', '.lnkd.in.') = 0 AND instr('.' || :source_host || '.', '.indeed.') = 0 AND instr('.' || :source_host || '.', '.glassdoor.') = 0 AND instr('.' || :source_host || '.', '.jora.') = 0 AND instr('.' || :source_host || '.', '.careerone.') = 0 AND instr('.' || :source_host || '.', '.adzuna.') = 0 AND instr('.' || :source_host || '.', '.ziprecruiter.') = 0 AND instr('.' || :source_host || '.', '.simplyhired.') = 0 AND instr('.' || :source_host || '.', '.careerjet.') = 0 AND instr('.' || :source_host || '.', '.jooble.') = 0 AND instr('.' || :source_host || '.', '.gotjob.') = 0 AND instr('.' || :source_host || '.', '.monster.') = 0 AND instr('.' || :source_host || '.', '.talent.com.') = 0 AND instr('.' || :source_host || '.', '.proappstore.online.') = 0 AND NOT EXISTS (SELECT 1 FROM jobs WHERE source_url = :original_url AND status = 'active') AND NOT EXISTS (SELECT 1 FROM jobs WHERE id = 'job-' || l.id) AND length(trim(:description)) BETWEEN 1 AND 20000 AND :slug GLOB '[a-z0-9]*' AND :slug NOT GLOB '*[^a-z0-9-]*' AND length(:slug) <= 120 AND (:category IS NULL OR :category IN ('Engineering', 'Design', 'Marketing', 'Sales', 'Operations', 'Finance', 'HR', 'Legal', 'Other')) AND (:location_type IS NULL OR :location_type IN ('remote', 'hybrid', 'onsite')) AND (:employment_type IS NULL OR :employment_type IN ('full-time', 'part-time', 'contract', 'casual')) AND (:experience_level IS NULL OR :experience_level IN ('entry', 'mid', 'senior', 'lead', 'staff')) AND (:salary_min IS NULL OR :salary_min >= 0) AND (:salary_max IS NULL OR :salary_max >= 0) AND (:salary_min IS NULL OR :salary_max IS NULL OR :salary_min <= :salary_max) AND (:location IS NULL OR length(:location) <= 120)",
+        "INSERT INTO companies (id, name, slug, logo_url, description, website, location, industry, size, owner_user_id, country, created_at) SELECT 'company-' || l.company_slug, l.company_name, l.company_slug, NULL, NULL, :company_website, l.location, NULL, NULL, NULL, l.country, :__now FROM leads l WHERE l.id = :lead_id AND EXISTS (SELECT 1 FROM jobs WHERE id = 'job-' || l.id AND posted_by = :__user_id AND created_at = :__now) AND NOT EXISTS (SELECT 1 FROM companies WHERE slug = l.company_slug OR id = 'company-' || l.company_slug)",
+        "UPDATE leads SET status = 'published', original_url = :original_url, job_id = 'job-' || id, status_reason = NULL, checked_at = :__now, updated_at = :__now WHERE id = :lead_id AND status = 'new' AND EXISTS (SELECT 1 FROM jobs WHERE id = 'job-' || :lead_id AND posted_by = :__user_id AND created_at = :__now)"
+      ],
+      "params": {
+        "lead_id": {
+          "type": "string"
+        },
+        "original_url": {
+          "type": "string"
+        },
+        "source_host": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "company_website": {
+          "type": "string",
+          "optional": true
+        },
+        "location": {
+          "type": "string",
+          "optional": true
+        },
+        "category": {
+          "type": "string",
+          "optional": true
+        },
+        "location_type": {
+          "type": "string",
+          "optional": true
+        },
+        "employment_type": {
+          "type": "string",
+          "optional": true
+        },
+        "experience_level": {
+          "type": "string",
+          "optional": true
+        },
+        "salary_min": {
+          "type": "integer",
+          "optional": true
+        },
+        "salary_max": {
+          "type": "integer",
+          "optional": true
+        },
+        "salary_currency": {
+          "type": "string",
+          "optional": true,
+          "default": "AUD"
+        }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "mark_lead",
+      "description": "Mark a lead you submitted as 'unavailable' (posting gone, filled or closed) or 'rejected' (not a real job). A published lead's job is closed too when it becomes unavailable.",
+      "operation": "batch",
+      "statements": [
+        "UPDATE jobs SET status = 'closed' WHERE status = 'active' AND :status IN ('unavailable', 'rejected') AND id = (SELECT job_id FROM leads WHERE id = :lead_id AND submitted_by = :__user_id AND status IN ('new', 'published')) AND posted_by = :__user_id",
+        "UPDATE leads SET status = :status, status_reason = :reason, updated_at = :__now WHERE id = :lead_id AND submitted_by = :__user_id AND status IN ('new', 'published') AND :status IN ('unavailable', 'rejected') AND (:reason IS NULL OR length(:reason) <= 300)"
+      ],
+      "params": {
+        "lead_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string",
+          "optional": true
+        }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "list_my_leads",
+      "description": "Leads the caller submitted, newest first, optionally by status, keyset-paged by created_at.",
+      "operation": "query",
+      "sql": "SELECT id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, tags, seen_at, status, status_reason, duplicate_of, job_id, checked_at, created_at FROM leads WHERE submitted_by = :__user_id AND (:status IS NULL OR status = :status) AND (:before IS NULL OR created_at < :before) ORDER BY created_at DESC LIMIT :limit",
+      "params": {
+        "status": {
+          "type": "string",
+          "optional": true
+        },
+        "before": {
+          "type": "integer",
+          "optional": true
+        },
+        "limit": {
+          "type": "integer",
+          "optional": true,
+          "default": 50,
+          "max": 200
+        }
+      },
+      "requires_auth": true
+    },
+    {
+      "name": "op_list_leads",
+      "description": "List leads for owner/moderator review with search, status and keyset paging.",
+      "operation": "query",
+      "sql": "SELECT l.id AS lead_id, l.title, l.company_name, l.country, l.source_board, l.status, l.seen_at FROM leads l WHERE (:q IS NULL OR l.title LIKE '%' || :q || '%' OR l.company_name LIKE '%' || :q || '%') AND (:status IS NULL OR l.status = :status) AND (:after IS NULL OR l.id > :after) ORDER BY l.id ASC LIMIT 50",
+      "params": {
+        "q": {
+          "type": "string",
+          "optional": true
+        },
+        "status": {
+          "type": "string",
+          "optional": true
+        },
+        "after": {
+          "type": "string",
+          "optional": true
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "app_roles": [
+          "owner",
+          "moderator"
+        ],
+        "caller_unscoped": {
+          "reason": "App owners and appointed moderators review every submitted lead (posting metadata only, no submitter identity)."
+        }
+      }
+    },
+    {
+      "name": "op_lead_detail",
+      "description": "One lead for owner/moderator review (posting metadata, no submitter identity).",
+      "operation": "query",
+      "sql": "SELECT l.id AS lead_id, l.title, l.company_name, l.country, l.location, l.category, l.source_board, l.source_url, l.original_url, l.status, l.status_reason, l.duplicate_of, l.job_id, l.seen_at, l.checked_at, l.tags FROM leads l WHERE l.id = :lead_id LIMIT 1",
+      "params": {
+        "lead_id": {
+          "type": "string"
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "app_roles": [
+          "owner",
+          "moderator"
+        ],
+        "caller_unscoped": {
+          "reason": "App owners and appointed moderators open any submitted lead (posting metadata only)."
+        }
+      }
+    },
+    {
+      "name": "op_mark_lead_unavailable",
+      "description": "Mark a new or published lead unavailable as owner/moderator (posting gone, filled or closed); stale requests change nothing. Its job is closed separately via Close listing.",
+      "operation": "execute",
+      "sql": "UPDATE leads SET status = 'unavailable', status_reason = 'Posting gone, filled or closed', updated_at = :__now WHERE id = :lead_id AND status = :from_status AND status IN ('new', 'published')",
+      "params": {
+        "lead_id": {
+          "type": "string"
+        },
+        "from_status": {
+          "type": "string"
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "app_roles": [
+          "owner",
+          "moderator"
+        ],
+        "caller_unscoped": {
+          "reason": "App owners and appointed moderators may mark one lead unavailable by ID and expected status."
+        }
+      }
+    },
+    {
+      "name": "op_mark_lead_rejected",
+      "description": "Mark a new or published lead rejected as owner/moderator (not a real job posting); stale requests change nothing. Its job is closed separately via Close listing.",
+      "operation": "execute",
+      "sql": "UPDATE leads SET status = 'rejected', status_reason = 'Not a real job posting', updated_at = :__now WHERE id = :lead_id AND status = :from_status AND status IN ('new', 'published')",
+      "params": {
+        "lead_id": {
+          "type": "string"
+        },
+        "from_status": {
+          "type": "string"
+        }
+      },
+      "requires_auth": true,
+      "auth": {
+        "app_roles": [
+          "owner",
+          "moderator"
+        ],
+        "caller_unscoped": {
+          "reason": "App owners and appointed moderators may mark one lead rejected by ID and expected status."
+        }
+      }
     }
   ],
   "operator_view": {
@@ -1098,6 +1389,151 @@
             }
           ]
         }
+      },
+      {
+        "id": "leads",
+        "kind": "reports",
+        "title": "Leads",
+        "action": "op_list_leads",
+        "columns": [
+          {
+            "key": "lead_id",
+            "label": "Lead ID"
+          },
+          {
+            "key": "title",
+            "label": "Title"
+          },
+          {
+            "key": "company_name",
+            "label": "Company"
+          },
+          {
+            "key": "country",
+            "label": "Country"
+          },
+          {
+            "key": "source_board",
+            "label": "Seen on"
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "format": "badge"
+          },
+          {
+            "key": "seen_at",
+            "label": "Seen",
+            "format": "datetime"
+          }
+        ],
+        "search": {
+          "param": "q"
+        },
+        "page": {
+          "param": "after",
+          "column": "lead_id"
+        },
+        "status": {
+          "column": "status",
+          "param": "status",
+          "states": [
+            {
+              "value": "new",
+              "label": "New"
+            },
+            {
+              "value": "published",
+              "label": "Published"
+            },
+            {
+              "value": "duplicate",
+              "label": "Duplicate"
+            },
+            {
+              "value": "unavailable",
+              "label": "Unavailable"
+            },
+            {
+              "value": "rejected",
+              "label": "Rejected"
+            }
+          ]
+        },
+        "detail": {
+          "action": "op_lead_detail",
+          "param": "lead_id",
+          "key": "lead_id",
+          "fields": [
+            {
+              "key": "lead_id",
+              "label": "Lead ID"
+            },
+            {
+              "key": "title",
+              "label": "Title"
+            },
+            {
+              "key": "company_name",
+              "label": "Company"
+            },
+            {
+              "key": "country",
+              "label": "Country"
+            },
+            {
+              "key": "location",
+              "label": "Location"
+            },
+            {
+              "key": "category",
+              "label": "Category"
+            },
+            {
+              "key": "source_board",
+              "label": "Seen on"
+            },
+            {
+              "key": "source_url",
+              "label": "Seen at URL"
+            },
+            {
+              "key": "original_url",
+              "label": "Original posting"
+            },
+            {
+              "key": "status",
+              "label": "Status",
+              "format": "badge"
+            },
+            {
+              "key": "status_reason",
+              "label": "Reason"
+            },
+            {
+              "key": "duplicate_of",
+              "label": "Duplicate of"
+            },
+            {
+              "key": "job_id",
+              "label": "Job ID"
+            },
+            {
+              "key": "tags",
+              "label": "Tags"
+            },
+            {
+              "key": "seen_at",
+              "label": "Seen",
+              "format": "datetime"
+            },
+            {
+              "key": "checked_at",
+              "label": "Last checked",
+              "format": "datetime"
+            }
+          ]
+        }
       }
     ],
     "actions": [
@@ -1118,6 +1554,44 @@
           "to": "closed"
         },
         "target": "job_id"
+      },
+      {
+        "id": "mark_lead_unavailable",
+        "title": "Mark unavailable",
+        "resource": "leads",
+        "action": "op_mark_lead_unavailable",
+        "params": {
+          "lead_id": "lead_id",
+          "from_status": "status"
+        },
+        "confirm": "Mark this lead unavailable (posting gone, filled or closed)?",
+        "transition": {
+          "from": [
+            "new",
+            "published"
+          ],
+          "to": "unavailable"
+        },
+        "target": "lead_id"
+      },
+      {
+        "id": "mark_lead_rejected",
+        "title": "Reject lead",
+        "resource": "leads",
+        "action": "op_mark_lead_rejected",
+        "params": {
+          "lead_id": "lead_id",
+          "from_status": "status"
+        },
+        "confirm": "Reject this lead as not a real job posting?",
+        "transition": {
+          "from": [
+            "new",
+            "published"
+          ],
+          "to": "rejected"
+        },
+        "target": "lead_id"
       }
     ]
   }

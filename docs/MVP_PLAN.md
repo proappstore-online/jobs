@@ -33,11 +33,11 @@ Work goes directly to main under PAS repository conventions. Tests and platform 
 - Operator UI comes from `mcp.json.operator_view`. Its queries and writes are separate role-gated registered actions; admission to the console does not itself grant data access. Do not expose candidate contact information in the operator resource lists.
 - Reuse the existing database. Slice 1 requires no migration. Add a small additive migration for application contact fields in slice 4; never invent contact details for existing applications.
 - Public reads must use the supported PAS public-action contract and select public listing/company fields only. Keep employer editing reads separate. Confirm current SDK and platform requirements before removing the frontend sign-in gate.
-- Keep automated imports/feeds out of v1 (user-shared original-source jobs via `share_job` are in). PAS workers and authorized realtime rooms are available if ingestion or chat is justified later; neither is required for this release.
+- Leads + market research (epic #16): every posting seen becomes a lead; only validated original-source leads publish as jobs; signed-in research pages aggregate the leads ledger. PAS workers and authorized realtime rooms are available if ingestion or chat is justified later; neither is required for this release.
 
 ## Explicitly deferred
 
-Scrapers, feed integrations, browser agents, partner sync, chat, resume uploads, advanced candidate profiles, organization teams/invitations, company verification, saved-search alerts, matching/recommendations, paid listings, analytics dashboards, custom admin forms, static pages for every job, and complete GotJob parity.
+Scrapers, feed integrations, browser agents, partner sync, chat, resume uploads, advanced candidate profiles, organization teams/invitations, company verification, saved-search alerts, matching/recommendations, paid listings, custom admin forms, static pages for every job, and complete GotJob parity.
 
 Existing saved jobs, recent views, notifications and application status screens can stay; do not expand them for v1.
 

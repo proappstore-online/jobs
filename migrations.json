@@ -19,6 +19,10 @@
     {
       "name": "0005_application_contact",
       "sql": "ALTER TABLE applications ADD COLUMN candidate_name TEXT; ALTER TABLE applications ADD COLUMN contact_email TEXT;"
+    },
+    {
+      "name": "0006_leads",
+      "sql": "ALTER TABLE companies ADD COLUMN country TEXT NOT NULL DEFAULT 'AU'; CREATE TABLE IF NOT EXISTS leads ( id TEXT PRIMARY KEY, source_url TEXT NOT NULL UNIQUE, source_board TEXT, original_url TEXT, title TEXT NOT NULL, company_name TEXT NOT NULL, company_slug TEXT NOT NULL, country TEXT NOT NULL DEFAULT 'AU', location TEXT, category TEXT, location_type TEXT, employment_type TEXT, experience_level TEXT, salary_min INTEGER, salary_max INTEGER, tags TEXT NOT NULL DEFAULT '[]', seen_at INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'new', status_reason TEXT, duplicate_of TEXT, job_id TEXT, submitted_by TEXT NOT NULL, checked_at INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL ); CREATE INDEX IF NOT EXISTS idx_leads_country_seen ON leads(country, status, seen_at DESC); CREATE INDEX IF NOT EXISTS idx_leads_company ON leads(company_slug, title); CREATE INDEX IF NOT EXISTS idx_leads_job ON leads(job_id); CREATE INDEX IF NOT EXISTS idx_leads_submitter ON leads(submitted_by, created_at DESC); INSERT OR IGNORE INTO leads (id, source_url, source_board, original_url, title, company_name, company_slug, country, location, category, location_type, employment_type, experience_level, salary_min, salary_max, tags, seen_at, status, duplicate_of, job_id, submitted_by, checked_at, created_at, updated_at) SELECT 'lead-' || j.id, COALESCE(j.source_url, 'https://jobs.proappstore.online/#/job/' || j.id), CASE WHEN j.source_url IS NULL THEN 'jobs' ELSE 'company' END, j.source_url, j.title, c.name, c.slug, 'AU', j.location, j.category, j.location_type, j.employment_type, j.experience_level, j.salary_min, j.salary_max, '[]', j.posted_at, CASE WHEN j.status = 'active' THEN 'published' ELSE 'unavailable' END, NULL, j.id, COALESCE(j.posted_by, 'system'), NULL, j.created_at, j.created_at FROM jobs j JOIN companies c ON c.id = j.company_id;"
     }
   ]
 }

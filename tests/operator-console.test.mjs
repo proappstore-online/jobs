@@ -22,6 +22,7 @@ function fixture(t) {
   }
   db.prepare("INSERT INTO applications (id, user_id, job_id, note, applied_at) VALUES ('application-a', 'private-candidate', 'job-000', 'private application note', 1)").run()
   db.exec("UPDATE applications SET candidate_name = 'Private Name', contact_email = 'private@example.test'")
+  db.prepare("INSERT INTO leads (id, source_url, title, company_name, company_slug, seen_at, submitted_by, created_at, updated_at) VALUES ('lead-x', 'https://www.seek.com.au/job/1', 'Engineer X', 'Acme', 'acme', 1, 'private-candidate', 1, 1)").run()
   function execute(name, params = {}) {
     const tool = tools.get(name)
     const bound = Object.fromEntries(Object.entries(tool.params).map(([key, value]) => [key, params[key] ?? value.default ?? null]))
